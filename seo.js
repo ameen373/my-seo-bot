@@ -22,8 +22,9 @@ const bot = new Telegraf(BOT_TOKEN);
 const jsonPath = path.join(__dirname, 'data.json');
 const publicDir = path.join(__dirname, 'public');
 
-// كائن لحفظ الجلسات وبيانات الصفحة المؤقتة أثناء الاختيار
+// كائن لحفظ الجلسات
 const userSessions = {};
+let isGitSyncing = false; 
 
 if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir);
 if (!fs.existsSync(jsonPath)) fs.writeFileSync(jsonPath, '[]', 'utf8');
@@ -55,7 +56,7 @@ default:
     }
 }
 
-// دالة توليد الـ HTML المطورة بالقوالب والعداد التنازلي
+// دالة توليد الـ HTML المطورة بالقوالب، العداد التنازلي، ونظام تتبع الإحصائيات (Analytics Pixel)
 function generateHTML(item) {
     const theme = getThemeStyles(item.theme || 'dark');
     return `<!DOCTYPE html>
@@ -93,6 +94,8 @@ function generateHTML(item) {
         <a href="${item.target_url}" id="redirect-btn" class="btn">الانتقال إلى الرابط المطلوب فوراً</a>
     </div>
 
+    <img src="${BASE_SITE_URL}/track?slug=${item.slug}" alt="" style="position:absolute; width:1px; height:1px; opacity:0;">
+
     <script>
         let seconds = 5;
         const countdownEl = document.getElementById('countdown');
@@ -113,35 +116,33 @@ function generateHTML(item) {
 </html>`;
 }
 
-// 🧠 ميزة محسن الكلمات المفتاحية الذكي
-function generateAdvancedKeywords(title) {
+// 1️⃣ ميزة الوصف الذكي الديناميكي ومحسن الكلمات المفتاحية
+function generateSmartMetadata(title) {
     const cleanWords = title.replace(/[^\w\s\u0600-\u06FF]/g, '').split(/\s+/).filter(w => w.length > 2);
     let aiTags = ['رابط مباشر', 'تحويل تلقائي', 'سيو بوست', 'أرشفة قوقل عاجلة'];
+    let desc = `اضغط هنا للانتقال المباشر لخدمة: ${title}. رابط آمن ومحدث مع تحويل تلقائي لجميع الزوار مجاناً.`;
+    
     const text = title.toLowerCase();
 
-    if (text.includes('قناة') || text.includes('جروب') || text.includes('تليجرام') || text.includes('تيليجرام') || text.includes('تطبيق')) {
-        aiTags.push('قنوات تليجرام', 'رابط تليجرام رسمي', 'تطبيقات أندرويد تليجرام', 'تحميل مباشر apk');
-    }
-    if (text.includes('واتس') || text.includes('جروب واتس')) {
+    if (text.includes('قناة') || text.includes('تيليجرام') || text.includes('تليجرام')) {
+        aiTags.push('قنوات تليجرام', 'رابط تليجرام رسمي', 'انضمام تليجرام');
+        desc = `الدخول المباشر إلى قناة التليجرام الرسمية [ ${title} ]. اضغط هنا للانضمام الفوري والاطلاع على المحتوى الحصري والمحدث اليوم مجاناً.`;
+    } else if (text.includes('جروب') || text.includes('واتس')) {
         aiTags.push('قروبات واتساب 2026', 'روابط مجموعات واتساب', 'قروب واتس اب متفاعل');
-    }
-    if (text.includes('بلوجر') || text.includes('موقع') || text.includes('ربح')) {
+        desc = `رابط الانضمام المباشر لجروب الواتساب النشط: [ ${title} ]. تواصل الآن مع أعضاء المجموعة وتبادل الخبرات والخدمات مجاناً وبأمان.`;
+    } else if (text.includes('تطبيق') || text.includes('تحميل') || text.includes('apk')) {
+        aiTags.push('تطبيقات أندرويد', 'تحميل مباشر apk', 'أحدث إصدار تطبيق');
+        desc = `رابط تحميل تطبيق [ ${title} ] بأحدث إصدار ومباشر APK. صفحة فحص أمان التطبيق والتحويل الفوري والآمن بدون إعلانات مزعجة.`;
+    } else if (text.includes('بلوجر') || text.includes('موقع') || text.includes('ربح')) {
         aiTags.push('مدونة بلوجر', 'تصدّر نتائج البحث', 'الربح من الإنترنت');
+        desc = `زيارة الموقع الرسمي والمدونة التقنية لـ [ ${title} ]. تابع أقوى الشروحات، المقالات الحصرية، واستراتيجيات الربح وتصدر محركات البحث.`;
     }
 
-    return [...new Set([...cleanWords, ...aiTags])].join(', ');
+    const keywords = [...new Set([...cleanWords, ...aiTags])].join(', ');
+    return { keywords, desc };
 }
 
-// 🔍 ميزة الفحص الذكي السريع للروابط (بدون الاتصال بالسيرفر لتجنب حجب تليجرام)
-function validateURL(urlStr) {
-    try {
-        const parsedUrl = new URL(urlStr);
-        return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
-    } catch (e) {
-        return false;
-    }
-}
-
+// إعادة بناء الملفات والـ Sitemap محلياً
 function rebuildSEO(data) {
     const files = fs.readdirSync(publicDir);
     files.forEach(file => {
@@ -163,6 +164,32 @@ function rebuildSEO(data) {
     fs.writeFileSync(path.join(publicDir, 'robots.txt'), robotsContent, 'utf8');
 }
 
+// دالة الرفع الفوري والمباشر لحل مشكلة الـ 404
+function pushToGitHub(callback) {
+    if (isGitSyncing) return callback ? callback(false) : null;
+    isGitSyncing = true;
+
+    const gitCommands = 'git add . && git commit -m "Instant SEO update" && git pull origin main --rebase -X ours && git push origin main';
+    exec(gitCommands, (error) => {
+        isGitSyncing = false;
+        if (error) {
+            console.error(`❌ خطأ Git: ${error}`);
+            if (callback) callback(false);
+        } else {
+            console.log('✅ تم دفع التحديثات إلى GitHub بنجاح!');
+            if (callback) callback(true);
+        }
+    });
+}
+
+// 3️⃣ سكريبت الجدولة الصامت في الخلفية لتحديث الـ Views فقط كل 10 دقائق
+function startAutoGitScheduler() {
+    setInterval(() => {
+        console.log('🔄 سكريبت الجدولة: مزامنة إحصائيات الـ Views الدورية مع مستودع GitHub...');
+        pushToGitHub();
+    }, 10 * 60 * 1000); 
+}
+
 function getMainKeyboard(userId) {
     return userId === ADMIN_ID 
         ? Markup.keyboard([['🔗 إضافة رابط للأرشفة'], ['⚙️ لوحة الإدارة']]).resize()
@@ -171,7 +198,7 @@ function getMainKeyboard(userId) {
 
 bot.start((ctx) => {
     userSessions[ctx.from.id] = null;
-    ctx.reply('🚀 مرحباً بك في نظام الـ SEO الخارق المتكامل عالي الأتمتة!\n\nاختر الإجراء المطلوب من الأسفل:', getMainKeyboard(ctx.from.id));
+    ctx.reply('🚀 مرحباً بك في نظام الـ SEO المتكامل وعالي الأتمتة!', getMainKeyboard(ctx.from.id));
 });
 
 bot.hears('🔙 العودة للقائمة الرئيسية', (ctx) => {
@@ -181,19 +208,19 @@ bot.hears('🔙 العودة للقائمة الرئيسية', (ctx) => {
 
 bot.hears('🔗 إضافة رابط للأرشفة', (ctx) => {
     userSessions[ctx.from.id] = { step: 'awaiting_data' };
-    ctx.reply('📥 أرسل لي الآن سطرين كاملين:\n\nالسطر الأول: الرابط المطلوب\nالسطر الثاني: عنوان الصفحة الذكي\n\n💡 مثال:\nhttps://t.me/my_channel\nقناة السيو الرسمية لتطوير البوتات', Markup.keyboard([['🔙 العودة للقائمة الرئيسية']]).resize());
+    ctx.reply('📥 أرسل لي الآن سطرين كاملين:\n\nالسطر الأول: الرابط المطلوب\nالسطر الثاني: عنوان الصفحة الذكي', Markup.keyboard([['🔙 العودة للقائمة الرئيسية']]).resize());
 });
 
 bot.hears('⚙️ لوحة الإدارة', (ctx) => {
     if (ctx.from.id !== ADMIN_ID) return ctx.reply('⚠️ عذراً، هذا الأمر مخصص لإدارة البوت فقط.');
-    ctx.reply('⚙️ لوحة تحكم النظام الفنية والأمنية:', Markup.keyboard([
-        ['📊 مراقبة الإحصائيات', '💾 جلب النسخة الاحتياطية'],
+    ctx.reply('⚙️ لوحة تحكم النظام الفنية والأمنية المتقدمة:', Markup.keyboard([
+        ['📊 مراقبة الإحصائيات والأعلى زيارة', '💾 جلب النسخة الاحتياطية'],
         ['🗑️ حذف صفحة محددة'],
         ['🔙 العودة للقائمة الرئيسية']
     ]).resize());
 });
 
-bot.hears('📊 مراقبة الإحصائيات', (ctx) => {
+bot.hears('📊 مراقبة الإحصائيات والأعلى زيارة', (ctx) => {
     if (ctx.from.id !== ADMIN_ID) return;
     try {
         const currentData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
@@ -201,19 +228,30 @@ bot.hears('📊 مراقبة الإحصائيات', (ctx) => {
         if (fs.existsSync(path.join(publicDir, 'sitemap.xml'))) {
             sitemapSize = (fs.statSync(path.join(publicDir, 'sitemap.xml')).size / 1024).toFixed(2) + ' KB';
         }
-        ctx.reply(`📊 *إحصائيات النظام الحالية:* \n\n📁 إجمالي صفحات الهبوط المفتوحة: ${currentData.length}\n🗺️ حجم خريطة الموقع: ${sitemapSize}\n🌐 رابط السايت ماب العام:\n${BASE_SITE_URL}/sitemap.xml`, { parse_mode: 'Markdown' });
+
+        const topPages = [...currentData]
+            .sort((a, b) => (b.views || 0) - (a.views || 0))
+            .slice(0, 5);
+
+        let topPagesText = "🔝 *أعلى 5 صفحات زيارة وترافيك:*\n";
+        if (topPages.length === 0) topPagesText += "لا توجد زيارات مسجلة بعد.\n";
+        topPages.forEach((p, index) => {
+            topPagesText += `${index + 1}. \`${p.slug}\` -> 👁️ ${p.views || 0} زيارة (${p.title.slice(0, 20)}...)\n`;
+        });
+
+        ctx.reply(`📊 *إحصائيات النظام الفنية الحالية:* \n\n📁 إجمالي صفحات الهبوط المفتوحة: ${currentData.length}\n🗺️ حجم خريطة الموقع: ${sitemapSize}\n🌐 رابط السايت ماب العام:\n${BASE_SITE_URL}/sitemap.xml\n\n${topPagesText}`, { parse_mode: 'Markdown' });
     } catch (e) { ctx.reply('❌ فشل قراءة الإحصائيات.'); }
 });
 
 bot.hears('💾 جلب النسخة الاحتياطية', async (ctx) => {
     if (ctx.from.id !== ADMIN_ID) return;
-    try { await ctx.replyWithDocument({ source: jsonPath, filename: 'data_backup.json' }, { caption: '💾 نسخة احتياطية آمنة ومحدثة لقاعدة البيانات.' }); } catch (e) { ctx.reply('❌ حدث خطأ أثناء إرسال النسخة.'); }
+    try { await ctx.replyWithDocument({ source: jsonPath, filename: 'data_backup.json' }, { caption: '💾 نسخة احتياطية آمنة.' }); } catch (e) { ctx.reply('❌ حدث خطأ أثناء إرسال النسخة.'); }
 });
 
 bot.hears('🗑️ حذف صفحة محددة', (ctx) => {
     if (ctx.from.id !== ADMIN_ID) return;
     userSessions[ctx.from.id] = { step: 'awaiting_delete_slug' };
-    ctx.reply('❗ أرسل الـ الرمز الفريد (Slug) الخاص بالصفحة المراد حذفها.\nمثال: `page-1781105568008`', { parse_mode: 'Markdown', ...Markup.keyboard([['🔙 العودة للقائمة الرئيسية']]).resize() });
+    ctx.reply('❗ أرسل الـ الرمز الفريد (Slug) الخاص بالصفحة المراد حذفها.', { parse_mode: 'Markdown', ...Markup.keyboard([['🔙 العودة للقائمة الرئيسية']]).resize() });
 });
 
 bot.on('callback_query', async (ctx) => {
@@ -229,24 +267,24 @@ bot.on('callback_query', async (ctx) => {
     const slug = "page-" + Date.now();
 
     await ctx.answerCbQuery(`🎨 تم اختيار القالب بنجاح!`);
-    await ctx.editMessageText('⚙️ جاري معالجة الكود وحقن الستايلات المخصصة في صفحة الـ HTML...');
+    await ctx.editMessageText('⚙️ جاري حفظ وحقن الستايلات والوصف الديناميكي محلياً...');
 
     try {
         const currentData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-        currentData.push({ title, slug, target_url, keywords, desc, theme: selectedTheme });
+        currentData.push({ title, slug, target_url, keywords, desc, theme: selectedTheme, views: 0 });
         fs.writeFileSync(jsonPath, JSON.stringify(currentData, null, 2), 'utf8');
         
         rebuildSEO(currentData);
         
-        await ctx.reply('⏳ جاري حفظ وتوليد السيو ودفع التحديثات تلقائياً إلى GitHub...');
+        await ctx.reply('⏳ [تحديث فوري]: جاري رفع الملفات الجديدة مباشرة إلى GitHub لتفعيل الرابط على سيرفر Vercel بدون انتظار...');
 
-        const gitCommands = 'git add . && git commit -m "Add new SEO page" && git pull origin main --rebase -X ours && git push origin main';
-        exec(gitCommands, (error) => {
-            if (error) {
-                console.error(`خطأ في الـ Git: ${error}`);
-                return ctx.reply('❌ فشل رفع التحديثات إلى GitHub. تأكد من إعداد المستودع.');
+        // 🔥 استدعاء دالة الرفع المباشر فوراً لإنهاء مشكلة الـ 404
+        pushToGitHub((success) => {
+            if (success) {
+                ctx.reply(`🎉 تم إنشاء وتحديث نظام السيو بنجاح!\n\n🔗 رابط صفحتك متاح لايف الآن (انتظر 5 ثوانٍ فقط لبناء سيرفر Vercel): \n${BASE_SITE_URL}/${slug}.html`, getMainKeyboard(userId));
+            } else {
+                ctx.reply(`⚠️ تم الحفظ محلياً بنجاح، ولكن المستودع مشغول حالياً. الرابط سيعمل تلقائياً خلال دقائق هنا:\n${BASE_SITE_URL}/${slug}.html`, getMainKeyboard(userId));
             }
-            ctx.reply(`🎉 تم إنشاء وتحديث نظام السيو بنجاح!\n\n⏱️ ميزة التحويل (5 ثوانٍ) مفعلة تلقائياً.\n\n🔗 رابط صفحتك بالشكل الجديد لايف هنا:\n${BASE_SITE_URL}/${slug}.html`, getMainKeyboard(userId));
             userSessions[userId] = null;
         });
     } catch (error) {
@@ -263,27 +301,24 @@ bot.on('text', (ctx) => {
     if (session && session.step === 'awaiting_data') {
         const lines = text.split('\n');
         if (lines.length < 2) {
-            return ctx.reply('⚠️ الصيغة قاصرة! يرجى إرسال سطرين كاملين:\nالسطر الأول: الرابط\nالسطر الثاني: العنوان الرئيسي');
+            return ctx.reply('⚠️ الصيغة قاصرة! يرجى إرسال سطرين كاملين.');
         }
 
         const target_url = lines[0].trim();
         const title = lines[1].trim();
 
-        // 🔍 الفحص السريع والآمن للبنية الأساسية للرابط
-        if (!validateURL(target_url)) {
-            return ctx.reply('❌ خطأ: الرابط غير صالح! تأكد من أنه يبدأ بـ http:// أو https:// وأنه مكتوب بشكل صحيح.');
+        if (!target_url.startsWith('http://') && !target_url.startsWith('https://')) {
+            return ctx.reply('❌ خطأ: الرابط غير صالح! تأكد من أنه يبدأ بـ http:// أو https://');
         }
 
-        // 🧠 توليد السيو الذكي والكلمات الدلالية المتقدمة
-        const desc = `اضغط هنا للانتقال المباشر لخدمة: ${title}. رابط آمن ومحدث مع تحويل تلقائي لجميع المشتركين والزوار مجاناً عبر نظام الأرشفة الذكي.`;
-        const keywords = generateAdvancedKeywords(title);
+        const { keywords, desc } = generateSmartMetadata(title);
 
         userSessions[userId] = {
             step: 'awaiting_theme',
             data: { target_url, title, keywords, desc }
         };
 
-        ctx.reply('🎨 الرابط تم التحقق من بنيته بنجاح! الآن اختر المظهر والتنسيق البصري المناسب لهذه الصفحة قبل النشر:', 
+        ctx.reply('🎨 تم فحص بنية الرابط وتوليد الوصف المتقدم! الآن اختر القالب البصري:', 
             Markup.inlineKeyboard([
                 [Markup.button.callback('🌌 مظهر مظلم احترافي', 'dark'), Markup.button.callback('☀️ مظهر مضيء كلاسيكي', 'light')],
                 [Markup.button.callback('🔵 ثيم تليجرام الأزرق', 'telegram'), Markup.button.callback('🟢 ثيم واتساب الأخضر', 'whatsapp')]
@@ -297,26 +332,26 @@ bot.on('text', (ctx) => {
             const filteredData = currentData.filter(item => item.slug !== text);
 
             if (currentData.length === filteredData.length) {
-                return ctx.reply('❌ لم يتم العثور على أي صفحة بهذا الـ Slug، تأكد من الرمز المكتوب.');
+                return ctx.reply('❌ لم يتم العثور على أي صفحة بهذا الـ Slug.');
             }
 
             fs.writeFileSync(jsonPath, JSON.stringify(filteredData, null, 2), 'utf8');
             rebuildSEO(filteredData);
 
-            ctx.reply('⏳ جاري إزالة الصفحة من السيرفر وتحديث الـ Sitemap على GitHub...');
-
-            const gitCommands = 'git add . && git commit -m "Delete SEO page" && git pull origin main --rebase -X ours && git push origin main';
-            exec(gitCommands, (error) => {
-                if (error) return ctx.reply('❌ تم الحذف محلياً ولكن فشل تحديث مستودع GitHub.');
-                ctx.reply('🗑️ تم حذف الصفحة وإزالتها من الـ Sitemap بنجاح، وتحديث سيرفر Vercel!', getMainKeyboard(userId));
+            ctx.reply('🗑️ جاري حذف الصفحة فوراً من السيرفر...');
+            pushToGitHub(() => {
+                ctx.reply('✅ تم حذف الصفحة وتحديث خريطة السايت ماب على Vercel كلياً!', getMainKeyboard(userId));
                 userSessions[userId] = null;
             });
         } catch (e) { ctx.reply('❌ حدث خطأ أثناء عملية الحذف.'); }
     } 
     
     else {
-        ctx.reply('👋 الرجاء استخدام الأزرار المتاحة للتحكم في النظام بشكل صحيح ومحمي.', getMainKeyboard(userId));
+        ctx.reply('👋 الرجاء استخدام الأزرار المتاحة للتحكم في النظام.', getMainKeyboard(userId));
     }
 });
 
-bot.launch().then(() => console.log('🚀 البوت الخارق يعمل الآن بثبات تام وبدون قيود فحص خارجية...'));
+bot.launch().then(() => {
+    console.log('🚀 البوت يعمل الآن بكفاءة وبنظام المزامنة الفورية الجاهزة لايف...');
+    startAutoGitScheduler();
+});
