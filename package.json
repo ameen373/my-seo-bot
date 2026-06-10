@@ -1,0 +1,23 @@
+{
+  "name": "telegram-seo-mini-app",
+  "version": "1.0.0",
+  "description": "Telegram Mini App SEO platform running on Termux",
+  "main": "seo.js",
+  "scripts": {
+    "start": "node seo.js",
+    "server": "node server.js"
+  },
+  "dependencies": {
+    "body-parser": "^2.2.2",
+    "dotenv": "^17.4.2",
+    "express": "^4.22.2",
+    "lowdb": "^7.0.1",
+    "node-telegram-bot-api": "^0.66.0",
+    "pm2": "^7.0.1",
+    "serverless-http": "^4.0.0",
+    "telegraf": "^4.16.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "users": {},
+  "plans": {
+    "free": {
+      "price": 0,
+      "daily_limit": 1
+    },
+    "basic": {
+      "price": 5,
+      "daily_limit": 10
+    },
+    "pro": {
+      "price": 15,
+      "daily_limit": 50
+    }
+  },
+  "payments": [],
+  "redirects": {},
+  "admin": {
+    "approved_payments": []
+  },
+  "stats": {
+    "total_users": 0,
+    "total_redirects": 0
+  }
+}
