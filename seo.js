@@ -7,6 +7,7 @@ const { Telegraf, Markup } = require('telegraf');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
+const https = require('https'); // مدمجة لفحص الروابط تلقائياً بأمان
 
 // جلب البيانات من ملف .env تلقائياً
 const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -28,34 +29,57 @@ let isGitSyncing = false;
 if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir);
 if (!fs.existsSync(jsonPath)) fs.writeFileSync(jsonPath, '[]', 'utf8');
 
-// 🎨 دالة الستايلات والقوالب البصرية
+// 🎨 دالة الستايلات والأيقونات المخصصة لكل ثيم (Favicon & Theme Engine)
 function getThemeStyles(theme) {
     switch (theme) {
         case 'light':
             return {
                 bg: '#f8fafc', container: '#ffffff', text: '#0f172a', desc: '#475569',
-                titleColor: '#0284c7', btnBg: '#0284c7', btnHover: '#0369a1', timerBox: '#d97706'
+                titleColor: '#0284c7', btnBg: '#0284c7', btnHover: '#0369a1', timerBox: '#d97706',
+                icon: '🔗'
             };
         case 'telegram':
             return {
                 bg: '#e7ebf0', container: '#ffffff', text: '#222222', desc: '#707579',
-                titleColor: '#2481cc', btnBg: '#2481cc', btnHover: '#1c6ca8', timerBox: '#e67e22'
+                titleColor: '#2481cc', btnBg: '#2481cc', btnHover: '#1c6ca8', timerBox: '#e67e22',
+                icon: '🔹'
             };
         case 'whatsapp':
             return {
                 bg: '#dcf8c6', container: '#ffffff', text: '#303030', desc: '#575757',
-                titleColor: '#075e54', btnBg: '#25d366', btnHover: '#1ebd58', timerBox: '#b8860b'
+                titleColor: '#075e54', btnBg: '#25d366', btnHover: '#1ebd58', timerBox: '#b8860b',
+                icon: '🟢'
             };
         case 'dark':
         default:
             return {
                 bg: '#0f172a', container: '#1e293b', text: '#f8fafc', desc: '#94a3b8',
-                titleColor: '#38bdf8', btnBg: '#0284c7', btnHover: '#0369a1', timerBox: '#fbbf24'
+                titleColor: '#38bdf8', btnBg: '#0284c7', btnHover: '#0369a1', timerBox: '#fbbf24',
+                icon: '🌌'
             };
     }
 }
 
-// 2️⃣ توليد الـ HTML + نظام الـ Schema Markup المتقدم لتسريع أرشفة قوقل
+// 🌐 دالة فحص أمان واستقرار الرابط تلقائياً قبل توليد السيو
+function validateUrl(targetUrl) {
+    return new Promise((resolve) => {
+        try {
+            // استخدام https.get بشكل سريع وغير حاصر للفحص
+            https.get(targetUrl, { timeout: 5000 }, (res) => {
+                // إذا كان الرابط يعطي استجابة مستقرة أو تحويل تلقائي فهو سليم
+                if (res.statusCode >= 200 && res.statusCode < 400) {
+                    resolve(true);
+                } else {
+                    resolve(false);
+                }
+            }).on('error', () => resolve(false));
+        } catch (e) {
+            resolve(false);
+        }
+    });
+}
+
+// 2️⃣ توليد الـ HTML + نظام الـ Schema Markup + أيقونات السوشيال ميديا الاحترافية
 function generateHTML(item) {
     const theme = getThemeStyles(item.theme || 'dark');
     
@@ -78,14 +102,16 @@ function generateHTML(item) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${item.title}</title>
+    <title>${theme.icon} ${item.title}</title>
     <meta name="description" content="${item.desc}">
     <meta name="keywords" content="${item.keywords}">
     <meta name="robots" content="index, follow">
+    
     <meta property="og:title" content="${item.title}">
     <meta property="og:description" content="${item.desc}">
     <meta property="og:url" content="${BASE_SITE_URL}/${item.slug}.html">
     <meta property="og:type" content="website">
+    <meta property="og:site_name" content="SEO Engine Pro">
     
     <script type="application/ld+json">
         ${JSON.stringify(schemaMarkup)}
@@ -119,7 +145,6 @@ function generateHTML(item) {
         const timerContainer = document.getElementById('timer-container');
         const targetUrl = \`${item.target_url}\`;
 
-        // تتبع المشاهدات محلياً عبر تحسين الأداء
         try {
             let views = localStorage.getItem('view_' + '${item.slug}') || 0;
             if(!views) {
@@ -141,7 +166,7 @@ function generateHTML(item) {
 </html>`;
 }
 
-// 1️⃣ ميزة الوصف الذكي والـ Auto-Scraper التلقائي لاستنتاج العناوين والكلمات الدلالية
+// 1️⃣ ميزة الوصف الذكي والـ Auto-Scraper التلقائي لاستنتاج العناوين
 function generateSmartMetadata(title, targetUrl) {
     let finalTitle = title ? title.trim() : "";
     
@@ -204,7 +229,7 @@ function pushToGitHub(callback) {
     if (isGitSyncing) return callback ? callback(false) : null;
     isGitSyncing = true;
 
-    const gitCommands = 'git add . && git commit -m "Vercel Optimization Update" && git push origin main';
+    const gitCommands = 'git add . && git commit -m "Vercel Enterprise Optimization" && git push origin main';
     exec(gitCommands, (error) => {
         isGitSyncing = false;
         if (error) {
@@ -224,7 +249,7 @@ function getMainKeyboard(userId) {
 
 bot.start((ctx) => {
     userSessions[ctx.from.id] = null;
-    ctx.reply('🚀 مرحباً بك في نظام الـ SEO المتكامل والمحسّن لمنصة Vercel!', getMainKeyboard(ctx.from.id));
+    ctx.reply('🚀 مرحباً بك في نظام الـ SEO المتكامل والمحسّن لمنصة Vercel بخصائص الذكاء الشامل!', getMainKeyboard(ctx.from.id));
 });
 
 bot.hears('🔙 العودة للقائمة الرئيسية', (ctx) => {
@@ -290,7 +315,7 @@ bot.on('callback_query', async (ctx) => {
 
     await ctx.answerCbQuery(`🎨 تم اختيار القالب بنجاح!`);
     
-    const progressMessage = await ctx.reply('⚙️ جاري معالجة الملفات محلياً ورفعها إلى السيرفر... يرجى الانتظار دون الضغط على الرابط لتجنب خطأ 404.');
+    const progressMessage = await ctx.reply('⚙️ جاري معالجة الملفات محلياً وحقن الـ OG Tags المتقدمة...');
 
     try {
         const currentData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
@@ -301,14 +326,21 @@ bot.on('callback_query', async (ctx) => {
 
         pushToGitHub(async (success) => {
             if (success) {
-                // ⏱️ عداد تنازلي ذكي لمنع الـ 404 لإعطاء Vercel وقتاً كافياً لبناء الصفحة لايف
                 let timeLeft = 25; 
                 const interval = setInterval(async () => {
                     timeLeft -= 5;
                     if (timeLeft <= 0) {
                         clearInterval(interval);
                         await bot.telegram.deleteMessage(ctx.chat.id, progressMessage.message_id).catch(() => {});
-                        ctx.reply(`🎉 تم إطلاق ونشر الصفحة بنجاح تآم والآن أصبحت لايف بالكامل!\n\n🚀 [ميزة الـ Schema مفعلة]: تم حقن كود البيانات المنظمة لمضاعفة سرعة زحف قوقل.\n\n🔗 رابط صفحتك جاهز وآمن تماماً الآن:\n${BASE_SITE_URL}/${slug}.html`, getMainKeyboard(userId));
+                        
+                        // 🔗 إرسال الرابط النهائي للمستخدم
+                        ctx.reply(`🎉 تم إطلاق ونشر الصفحة بنجاح تآم والآن أصبحت لايف بالكامل!\n\n🚀 [ميزة الـ Schema مفعلة]: تم حقن كود البيانات المنظمة وميزات الـ OG Tags لجميع قوالب العرض.\n\n🔗 رابط صفحتك جاهز وآمن تماماً الآن:\n${BASE_SITE_URL}/${slug}.html`, getMainKeyboard(userId));
+                        
+                        // 🔔 3️⃣ إرسال إشعار فوري حي للمسؤول (Admin Live Notification) ليؤكد الجاهزية لايف
+                        if (userId !== ADMIN_ID && ADMIN_ID !== 0) {
+                            bot.telegram.sendMessage(ADMIN_ID, `🔔 **تنبيه حي من النظام:**\nقام مستخدم بإنشاء صفحة سيو جديدة بنجاح وهي لايف الآن!\n\n📝 العنوان: ${title}\n🔗 الرابط: ${BASE_SITE_URL}/${slug}.html`, { parse_mode: 'Markdown' }).catch(()=>{});
+                        }
+
                     } else {
                         await bot.telegram.editMessageText(ctx.chat.id, progressMessage.message_id, null, `⏳ جاري إنهاء بناء السيرفر السحابي (Deployment) على Vercel... يتبقى المزامنة النهائية خلال ${timeLeft} ثانية للاستقرار الفوري.`).catch(() => {});
                     }
@@ -324,7 +356,7 @@ bot.on('callback_query', async (ctx) => {
     }
 });
 
-bot.on('text', (ctx) => {
+bot.on('text', async (ctx) => {
     const userId = ctx.from.id;
     const session = userSessions[userId];
     const text = ctx.message.text.trim();
@@ -338,6 +370,17 @@ bot.on('text', (ctx) => {
             return ctx.reply('❌ خطأ: الرابط غير صالح! تأكد من أنه يبدأ بـ http:// أو https://');
         }
 
+        // 🔍 1️⃣ ميزة فحص الروابط تلقائياً والأمان وحماية قوة السيو (URL Validator)
+        const checkingMsg = await ctx.reply('🔍 جاري فحص الرابط المرفق برمجياً للتأكد من سلامته واستقراره قبل توليد السيو...');
+        const isValid = await validateUrl(target_url);
+        
+        // مسح رسالة الفحص ليكون المظهر جميلاً ونظيفاً
+        await bot.telegram.deleteMessage(ctx.chat.id, checkingMsg.message_id).catch(() => {});
+
+        if (!isValid) {
+            return ctx.reply('❌ خطأ: الرابط الذي أرسلته غير صالح، أو معطل، أو يرفض اتصالات السيرفر الخارجية. يرجى التأكد من الرابط وإعادة المحاولة حمايةً لقوة سيو موقعك.');
+        }
+
         const metadata = generateSmartMetadata(title, target_url);
 
         userSessions[userId] = {
@@ -345,7 +388,7 @@ bot.on('text', (ctx) => {
             data: { target_url, title: metadata.title, keywords: metadata.keywords, desc: metadata.desc }
         };
 
-        ctx.reply(`🎯 تم توليد الكلمات المفتاحية والأوصاف الذكية المتوافقة مع سيو بنجاح!\n\n📝 العنوان المعتمد: ${metadata.title}\n\n🎨 الآن اختر القالب البصري المناسب لصفحتك:`, 
+        ctx.reply(`🎯 الرابط سليم ومثالي! تم توليد الكلمات المفتاحية والأوصاف الذكية المتوافقة مع سيو بنجاح!\n\n📝 العنوان المعتمد: ${metadata.title}\n\n🎨 الآن اختر القالب البصري والتنسيق المناسب لهذه الصفحة قبل النشر:`, 
             Markup.inlineKeyboard([
                 [Markup.button.callback('🌌 مظهر مظلم احترافي', 'dark'), Markup.button.callback('☀️ مظهر مضيء كلاسيكي', 'light')],
                 [Markup.button.callback('🔵 ثيم تليجرام الأزرق', 'telegram'), Markup.button.callback('🟢 ثيم واتساب الأخضر', 'whatsapp')]
@@ -380,5 +423,5 @@ bot.on('text', (ctx) => {
 
 // تشغيل البوت
 bot.launch().then(() => {
-    console.log('🚀 البوت يعمل الآن بكفاءة ومحمي بشكل كامل ومتوافق مع Vercel...');
+    console.log('🚀 البوت يعمل الآن بكفاءة وبأعلى المميزات الحصرية المدمجة وسهلة الاستخدام...');
 });
