@@ -62,7 +62,7 @@ function getThemeStyles(theme) {
 
 function getDynamicReviews(title) {
     const text = title.toLowerCase();
-    if (text.includes('قناة') || text.includes('تليجرام')) {
+    if (text.includes('قناة') || text.includes('تليجرام') || text.includes('منشور')) {
         return [
             { user: "أحمد المالي", comment: "محتوى القناة أسطوري وأنصح بالانضمام فوراً!", stars: "⭐⭐⭐⭐⭐" },
             { user: "خالد العالمي", comment: "التحويل سريع والقناة متفاعلة جداً شكراً لكم.", stars: "⭐⭐⭐⭐⭐" }
@@ -94,6 +94,24 @@ function validateUrls(urlsString) {
         }
         resolve(true);
     });
+}
+
+// 🛡️ دالة لفحص ما إذا كان الرابط مكرراً وموجوداً مسبقاً في قاعدة البيانات
+function isUrlDuplicate(urlsString) {
+    try {
+        const currentData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+        const incomingUrls = urlsString.split(',').map(u => u.trim());
+        
+        for (let item of currentData) {
+            const existingUrls = item.target_url.split(',').map(u => u.trim());
+            // إذا تطابق أي رابط جديد مع الروابط القديمة المخزنة
+            const hasMatch = incomingUrls.some(url => existingUrls.includes(url));
+            if (hasMatch) return true;
+        }
+    } catch (e) {
+        return false;
+    }
+    return false;
 }
 
 // 2️⃣ توليد الـ HTML المتقدم مع أنظمة الحماية (Anti-Spy) والتحليلات (Micro Analytics)
@@ -245,7 +263,7 @@ function generate404Page(lastItems) {
 <body>
     <div class="box">
         <h1>404</h1>
-        <h2>عذراً، الرابط المطلق قد يكون انتهى أو تم نقله!</h2>
+        <h2>عذراً، الرابط المطلوب قد يكون انتهى أو تم نقله!</h2>
         <p>لحمايتك وضمان حصولك على المحتوى، إليك أحدث القنوات والمجموعات النشطة والموثوقة المتاحة الآن في موقعنا:</p>
         <ul>
             ${linksHTML || '<li>لا توجد روابط نشطة حالياً، عد لاحقاً!</li>'}
@@ -256,18 +274,31 @@ function generate404Page(lastItems) {
 </html>`;
 }
 
+// ✨ دالة توليد الأسماء الذكية والمتنوعة برمجياً لمنع التكرار البصري
 function generateSmartMetadata(title, targetUrl) {
     let finalTitle = title ? title.trim() : "";
     const primaryUrl = targetUrl.split(',')[0].trim();
     
+    // مصفوفة كلمات تسويقية منوعة لحقنها في العناوين لتبدو ديناميكية واحترافية
+    const suffixes = ["الموثق والمحدث", "الحصري والآمن", "الرسمي اليوم", "المباشر والنشط", "العالمي المفتوح"];
+    const randomSuffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+
     if (!finalTitle) {
         if (primaryUrl.includes('t.me/')) {
             const parts = primaryUrl.split('/');
-            finalTitle = "رابط انضمام تليجرام - " + (parts[parts.length - 1] || "قناة رسمية");
+            const lastPart = parts[parts.length - 1] || "";
+            
+            // إذا كان الرابط ينتهي برقم بحت (رابط منشور)
+            if (/^\d+$/.test(lastPart)) {
+                const postTypes = ["منشور تليجرام عاجل", "تغطية تليجرام خاصة", "تحديث تليجرام حصري", "مستند تليجرام مهم"];
+                finalTitle = postTypes[Math.floor(Math.random() * postTypes.length)] + " - " + randomSuffix;
+            } else {
+                finalTitle = "رابط انضمام تليجرام " + randomSuffix;
+            }
         } else if (primaryUrl.includes('chat.whatsapp.com')) {
-            finalTitle = "مجموعة واتساب نشطة ومحدثة اليوم";
+            finalTitle = "جروب واتساب متفاعل - " + randomSuffix;
         } else {
-            finalTitle = "رابط تحويل خارجي آمن وسريع";
+            finalTitle = "رابط تحويل خارجي " + randomSuffix;
         }
     }
 
@@ -276,12 +307,12 @@ function generateSmartMetadata(title, targetUrl) {
     let desc = `اضغط هنا للانتقال المباشر لخدمة: ${finalTitle}. رابط آمن ومحدث مع تحويل تلقائي لجميع الزوار مجاناً.`;
     
     const text = finalTitle.toLowerCase();
-    if (text.includes('قناة') || text.includes('تليجرام') || primaryUrl.includes('t.me')) {
-        aiTags.push('قنوات تليجرام', 'رابط تليجرام رسمي', 'انضمام تليجرام');
-        desc = `الدخول المباشر إلى قناة التليجرام الرسمية [ ${finalTitle} ]. اضغط هنا للانضمام الفوري والاطلاع على المحتوى الحصري والمحدث اليوم مجاناً.`;
+    if (text.includes('قناة') || text.includes('تليجرام') || text.includes('منشور') || primaryUrl.includes('t.me')) {
+        aiTags.push('قنوات تليجرام', 'رابط تليجرام رسمي', 'انضمام تليجرام', 'منشورات تليجرام سيو');
+        desc = `الدخول المباشر والتلقائي السريع إلى: [ ${finalTitle} ]. اضغط هنا للانتقال الفوري والاطلاع على المحتوى الحصري مجاناً وبأمان.`;
     } else if (text.includes('جروب') || text.includes('واتس') || primaryUrl.includes('whatsapp')) {
-        aiTags.push('قروبات واتساب 2026', 'روابط مجموعات واتساب', 'قروب واتس اب متفاعل');
-        desc = `رابط الانضمام المباشر لجروب الواتساب النشط: [ ${finalTitle} ]. تواصل الآن مع أعضاء المجموعة وتبادل الخبرات والخدمات مجاناً وبأمان.`;
+        aiTags.push('قرابات واتساب 2026', 'روابط مجموعات واتساب', 'قروب واتس اب متفاعل');
+        desc = `رابط الانضمام المباشر لجروب الواتساب النشط: [ ${finalTitle} ]. تواصل الآن مع أعضاء المجموعة وتبادل الخبرات مجاناً وبأمان.`;
     }
 
     const keywords = [...new Set([...cleanWords, ...aiTags])].join(', ');
@@ -338,7 +369,7 @@ function getMainKeyboard(userId) {
 
 bot.start((ctx) => {
     userSessions[ctx.from.id] = null;
-    ctx.reply('🚀 مرحباً بك في أقوى نظام سيو ذكي متكامل ومحمي بالكامل ضد هجمات التجسس والبوتات!', getMainKeyboard(ctx.from.id));
+    ctx.reply('🚀 مرحباً بك في أقوى نظام سيو ذكي متكامل ومحمي بالكامل ضد هجمات التجسس والبوتات ومعزز بمنع التكرار التلقائي!', getMainKeyboard(ctx.from.id));
 });
 
 bot.hears('🔙 العودة للقائمة الرئيسية', (ctx) => {
@@ -348,7 +379,7 @@ bot.hears('🔙 العودة للقائمة الرئيسية', (ctx) => {
 
 bot.hears('🔗 إضافة رابط للأرشفة', (ctx) => {
     userSessions[ctx.from.id] = { step: 'awaiting_data' };
-    ctx.reply('📥 أرسل بيانات الرابط الآن بالتنسيق التالي:\n\nالسطر الأول: الرابط (يمكنك وضع روابط متعددة لـ A/B Testing مفصولة بفاصلة ,)\nالسطر الثاني: عنوان الصفحة الذكي (أو اترك السطر فارغاً للاستنتاج التلقائي)');
+    ctx.reply('📥 أرسل بيانات الرابط الآن بالتنسيق التالي:\n\nالسطر الأول: الرابط (يمكنك وضع روابط متعددة لـ A/B Testing مفصولة بفاصلة ,)\nالسطر الثاني: عنوان الصفحة الذكي (أو اترك السطر فارغاً للاستنتاج الذكي العشوائي)');
 });
 
 bot.hears('⚙️ لوحة الإدارة', (ctx) => {
@@ -427,7 +458,7 @@ async function finalizePageCreation(ctx, userId, slug) {
     const { target_url, title, keywords, desc, theme } = session.data || session;
     const finalTheme = theme || session.theme;
 
-    const progressMessage = await ctx.reply('⚙️ جاري معالجة نظام التحليلات، وبناء درع الحماية، وحقن صفحة الـ 404 المخصصة...');
+    const progressMessage = await ctx.reply('⚙️ جاري معالجة نظام التحليلات المتطور، وبناء درع الحماية، وحقن صفحة الـ 404 المخصصة المتنوعة...');
 
     try {
         const currentData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
@@ -449,10 +480,10 @@ async function finalizePageCreation(ctx, userId, slug) {
                         clearInterval(interval);
                         await bot.telegram.deleteMessage(ctx.chat.id, progressMessage.message_id).catch(() => {});
                         
-                        ctx.reply(`🎉 تم إطلاق ونشر صفحتك الاحترافية بنجاح لايف وجاهزة لاستقبال الترافيك المليوني!\n\n🛡️ [درع الحماية]: نشط لحجب أدوات التجسس والبوتات.\n📊 [التحليلات]: تقوم بتسجيل المشاهدات والنقرات محلياً.\n❌ [نظام 404]: تم تحديث الصفحة المخصصة تلقائياً.\n\n🔗 رابط صفحتك الآن جاهز كلياً:\n${BASE_SITE_URL}/${slug}.html`, getMainKeyboard(userId));
+                        ctx.reply(`🎉 تم إطلاق ونشر صفحتك الاحترافية بنجاح لايف وجاهزة لاستقبال الترافيك!\n\n🛡️ [درع الحماية]: نشط لحجب أدوات التجسس.\n📊 [التحليلات]: تسجل الزيارات والنقرات محلياً.\n❌ [نظام 404]: تم تنويع الأسماء وحقن القائمة تلقائياً.\n\n🔗 رابط صفحتك الآن جاهز كلياً:\n${BASE_SITE_URL}/${slug}.html`, getMainKeyboard(userId));
                         
                         if (userId !== ADMIN_ID && ADMIN_ID !== 0) {
-                            bot.telegram.sendMessage(ADMIN_ID, `🔔 **إشعار الإدارة الفوري:**\nتم توليد صفحة هبوط جديدة محمية ومؤرشفة بالكامل!\n\n📝 العنوان: ${title}\n🔗 الرابط: ${BASE_SITE_URL}/${slug}.html`, { parse_mode: 'Markdown' }).catch(()=>{});
+                            bot.telegram.sendMessage(ADMIN_ID, `🔔 **إشعار الإدارة الفوري:**\nتم توليد صفحة هبوط جديدة بميزة منع التكرار!\n\n📝 العنوان: ${title}\n🔗 الرابط: ${BASE_SITE_URL}/${slug}.html`, { parse_mode: 'Markdown' }).catch(()=>{});
                         }
                     } else {
                         await bot.telegram.editMessageText(ctx.chat.id, progressMessage.message_id, null, `⏳ جاري إنهاء بناء السيرفر السحابي (Deployment) على Vercel... يتبقى المزامنة النهائية خلال ${timeLeft} ثانية للاستقرار الفوري.`).catch(() => {});
@@ -478,6 +509,12 @@ bot.on('text', async (ctx) => {
         const target_url = lines[0].trim();
         const title = lines.length >= 2 ? lines[1].trim() : "";
 
+        // 🛡️ الميزة الجديدة: فحص ومنع تكرار الروابط قبل أي عملية معالجة أخرى
+        if (isUrlDuplicate(target_url)) {
+            userSessions[userId] = null; // إنهاء الجلسة لحماية البيانات
+            return ctx.reply('⚠️ عذراً يا أمين! هذا الرابط (أو أحد الروابط المرفقة) قد تم استخدامه وأرشفته مسبقاً في صفحة أخرى بالنظام.\n\n❌ تم إلغاء العملية لتجنب تكرار البيانات وحماية جودة السيو ومصداقية الموقع أمام جوجل.', getMainKeyboard(userId));
+        }
+
         const checkingMsg = await ctx.reply('🔍 جاري فحص استقرار وجودة الروابط المرفقة لـ A/B Testing...');
         const isValid = await validateUrls(target_url);
         
@@ -494,7 +531,7 @@ bot.on('text', async (ctx) => {
             data: { target_url, title: metadata.title, keywords: metadata.keywords, desc: metadata.desc }
         };
 
-        ctx.reply(`🎯 الروابط سليمة وممتازة! تم توليد الأوصاف والكلمات الدلالية تلقائياً.\n\n📝 العنوان المعتمد: ${metadata.title}\n\n🎨 الآن اختر القالب البصري المناسب لصفحتك:`, 
+        ctx.reply(`🎯 الروابط سليمة وجديدة كلياً! تم توليد الأوصاف والعناوين المتنوعة برمجياً لمنع التكرار البصري.\n\n📝 العنوان المعتمد: ${metadata.title}\n\n🎨 الآن اختر القالب البصري المناسب لصفحتك:`, 
             Markup.inlineKeyboard([
                 [Markup.button.callback('🌌 مظهر مظلم احترافي', 'dark'), Markup.button.callback('☀️ مظهر مضيء كلاسيكي', 'light')],
                 [Markup.button.callback('🔵 ثيم تليجرام الأزرق', 'telegram'), Markup.button.callback('🟢 ثيم واتساب الأخضر', 'whatsapp')]
@@ -535,5 +572,5 @@ bot.on('text', async (ctx) => {
 });
 
 bot.launch().then(() => {
-    console.log('🚀 تم تشغيل النظام المطور بالكامل بأعلى حزمة حماية وأرشفة خارقة لعام 2026...');
+    console.log('🚀 تم تشغيل النظام المطور بنجاح مع تفعيل حظر الروابط المكررة وتنويع السيو التلقائي لعام 2026...');
 });
