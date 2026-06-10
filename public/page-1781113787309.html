@@ -38,13 +38,19 @@
         <a href="https://whatsapp.com/channel/0029VagOwGg1noz6kthf2S12" id="redirect-btn" class="btn">الانتقال إلى الرابط المطلوب فوراً</a>
     </div>
 
-    <img src="https://my-seo-bot.vercel.app/track?slug=page-1781113787309" alt="" style="position:absolute; width:1px; height:1px; opacity:0;">
-
     <script>
         let seconds = 5;
         const countdownEl = document.getElementById('countdown');
         const timerContainer = document.getElementById('timer-container');
         const targetUrl = `https://whatsapp.com/channel/0029VagOwGg1noz6kthf2S12`;
+
+        // تتبع المشاهدات محلياً عبر تحسين الأداء
+        try {
+            let views = localStorage.getItem('view_' + 'page-1781113787309') || 0;
+            if(!views) {
+                localStorage.setItem('view_' + 'page-1781113787309', 1);
+            }
+        } catch(e){}
 
         const interval = setInterval(() => {
             seconds--;

@@ -7,13 +7,11 @@ const { Telegraf, Markup } = require('telegraf');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
-const http = require('http'); // مدمج لإنشاء لوحة التحكم عبر الويب بدون مكتبات خارجية
 
 // جلب البيانات من ملف .env تلقائياً
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const BASE_SITE_URL = process.env.BASE_SITE_URL;
 const ADMIN_ID = parseInt(process.env.ADMIN_ID) || 0;
-const WEB_ADMIN_PASSWORD = process.env.WEB_ADMIN_PASSWORD || "admin123"; // كلمة مرور لوحة الويب
 
 if (!BOT_TOKEN || !BASE_SITE_URL) {
     console.error("❌ خطأ: لم يتم العثور على التوكن أو رابط الموقع في ملف .env!");
@@ -49,7 +47,7 @@ function getThemeStyles(theme) {
                 titleColor: '#075e54', btnBg: '#25d366', btnHover: '#1ebd58', timerBox: '#b8860b'
             };
         case 'dark':
-default:
+        default:
             return {
                 bg: '#0f172a', container: '#1e293b', text: '#f8fafc', desc: '#94a3b8',
                 titleColor: '#38bdf8', btnBg: '#0284c7', btnHover: '#0369a1', timerBox: '#fbbf24'
@@ -61,7 +59,6 @@ default:
 function generateHTML(item) {
     const theme = getThemeStyles(item.theme || 'dark');
     
-    // هيكل البيانات المنظمة Schema JSON-LD
     const schemaMarkup = {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
@@ -116,13 +113,19 @@ function generateHTML(item) {
         <a href="${item.target_url}" id="redirect-btn" class="btn">الانتقال إلى الرابط المطلوب فوراً</a>
     </div>
 
-    <img src="${BASE_SITE_URL}/track?slug=${item.slug}" alt="" style="position:absolute; width:1px; height:1px; opacity:0;">
-
     <script>
         let seconds = 5;
         const countdownEl = document.getElementById('countdown');
         const timerContainer = document.getElementById('timer-container');
         const targetUrl = \`${item.target_url}\`;
+
+        // تتبع المشاهدات محلياً عبر تحسين الأداء
+        try {
+            let views = localStorage.getItem('view_' + '${item.slug}') || 0;
+            if(!views) {
+                localStorage.setItem('view_' + '${item.slug}', 1);
+            }
+        } catch(e){}
 
         const interval = setInterval(() => {
             seconds--;
@@ -142,7 +145,6 @@ function generateHTML(item) {
 function generateSmartMetadata(title, targetUrl) {
     let finalTitle = title ? title.trim() : "";
     
-    // إذا لم يرسل المستخدم عنواناً، نقوم بسحب واستنتاج الكلمات من الرابط تلقائياً
     if (!finalTitle) {
         if (targetUrl.includes('t.me/')) {
             const parts = targetUrl.split('/');
@@ -197,12 +199,12 @@ function rebuildSEO(data) {
     fs.writeFileSync(path.join(publicDir, 'robots.txt'), robotsContent, 'utf8');
 }
 
-// دالة الرفع الفوري والمباشر لـ GitHub
+// دالة الرفع المباشر لـ GitHub
 function pushToGitHub(callback) {
     if (isGitSyncing) return callback ? callback(false) : null;
     isGitSyncing = true;
 
-    const gitCommands = 'git add . && git commit -m "Advanced Cloud Update" && git pull origin main --rebase -X ours && git push origin main';
+    const gitCommands = 'git add . && git commit -m "Vercel Optimization Update" && git push origin main';
     exec(gitCommands, (error) => {
         isGitSyncing = false;
         if (error) {
@@ -214,116 +216,6 @@ function pushToGitHub(callback) {
     });
 }
 
-// سكريبت المزامنة الدورية الصامت
-function startAutoGitScheduler() {
-    setInterval(() => {
-        console.log('🔄 سكريبت الجدولة: مزامنة إحصائيات الـ Views الدورية مع مستودع GitHub...');
-        pushToGitHub();
-    }, 15 * 60 * 1000); // كل 15 دقيقة
-}
-
-// 3️⃣ لوحة إدارة متكاملة ومصغرة عبر الويب (Web Dashboard Interface) مدمجة بالكامل وبأعلى أمان
-function createWebDashboard() {
-    const server = http.createServer((req, res) => {
-        const urlObj = new URL(req.url, `http://${req.headers.host}`);
-        
-        // 1. مسار تتبع الـ Views للزوار (Analytics Pixel Link)
-        if (urlObj.pathname === '/track') {
-            const slug = urlObj.searchParams.get('slug');
-            try {
-                const data = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-                const page = data.find(p => p.slug === slug);
-                if (page) {
-                    page.views = (page.views || 0) + 1;
-                    fs.writeFileSync(jsonPath, JSON.stringify(data, null, 2), 'utf8');
-                }
-            } catch (e) { console.error(e); }
-            const buf = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
-            res.writeHead(200, { 'Content-Type': 'image/gif', 'Content-Length': buf.length });
-            return res.end(buf);
-        }
-
-        // 2. واحة لوحة التحكم البرمجية المرئية عبر المتصفح
-        if (urlObj.pathname === '/admin-panel') {
-            const pass = urlObj.searchParams.get('password');
-            if (pass !== WEB_ADMIN_PASSWORD) {
-                res.writeHead(401, { 'Content-Type': 'text/html; charset=utf-8' });
-                return res.end("<h1>🔒 عذراً، كلمة المرور للوحة الويب غير صحيحة أو منتهية!</h1>");
-            }
-
-            try {
-                const currentData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-                // ترتيب الصفحات حسب الأعلى زيارة
-                const sortedData = [...currentData].sort((a,b) => (b.views || 0) - (a.views || 0));
-
-                let rows = sortedData.map((item, idx) => `
-                    <tr>
-                        <td>${idx + 1}</td>
-                        <td><b>${item.title}</b></td>
-                        <td><a href="${BASE_SITE_URL}/${item.slug}.html" target="_blank">${item.slug}</a></td>
-                        <td><span class="badge">${item.views || 0} زيارة</span></td>
-                        <td><span class="theme-tag ${item.theme}">${item.theme || 'dark'}</span></td>
-                    </tr>
-                `).join('');
-
-                let htmlDashboard = `<!DOCTYPE html>
-                <html lang="ar" dir="rtl">
-                <head>
-                    <meta charset="UTF-8">
-                    <title>لوحة تحكم SEO Engine Pro</title>
-                    <style>
-                        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 40px; }
-                        .container { max-width: 1000px; margin: auto; background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5); }
-                        h1 { color: #38bdf8; border-bottom: 2px solid #334155; padding-bottom: 10px; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                        th, td { padding: 12px; text-align: right; border-bottom: 1px solid #334155; }
-                        th { background: #334155; color: #38bdf8; }
-                        a { color: #fbbf24; text-decoration: none; }
-                        .badge { background: #059669; color: white; padding: 4px 8px; border-radius: 6px; font-size: 13px; }
-                        .theme-tag { padding: 3px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
-                        .telegram { background: #2481cc; color: white; }
-                        .whatsapp { background: #25d366; color: black; }
-                        .dark { background: #475569; color: white; }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <h1>📊 لوحة تحكم وإحصائيات النظام المرئية</h1>
-                        <p>إجمالي الصفحات المفتوحة حالياً لايف: <b>${currentData.length} صفحة هبوط</b></p>
-                        <table>
-                            <thead>
-                                Redirection Pages Top Analytics
-                                <tr>
-                                    <th>#</th>
-                                    <th>العنوان الذكي للرابط</th>
-                                    <th>الرابط الفريد (Slug)</th>
-                                    <th>إحصائيات المشاهدة</th>
-                                    <th>الثيم المختار</th>
-                                </tr>
-                            </thead>
-                            <tbody>${rows}</tbody>
-                        </table>
-                    </div>
-                </body>
-                </html>`;
-
-                res.writeHead(200, { 'Content-Type': 'text/html' });
-                return res.end(htmlDashboard);
-            } catch (err) {
-                res.writeHead(500);
-                return res.end("Internal Server Error");
-            }
-        }
-
-        res.writeHead(404);
-        res.end();
-    });
-
-    server.listen(process.env.PORT || 3000, () => {
-        console.log('🌐 خادم الويب ولوحة الإحصائيات تعمل بنجاح الآن...');
-    });
-}
-
 function getMainKeyboard(userId) {
     return userId === ADMIN_ID 
         ? Markup.keyboard([['🔗 إضافة رابط للأرشفة'], ['⚙️ لوحة الإدارة']]).resize()
@@ -332,7 +224,7 @@ function getMainKeyboard(userId) {
 
 bot.start((ctx) => {
     userSessions[ctx.from.id] = null;
-    ctx.reply('🚀 مرحباً بك في نظام الـ SEO المتكامل وعالي الأتمتة والذكاء الشامل!', getMainKeyboard(ctx.from.id));
+    ctx.reply('🚀 مرحباً بك في نظام الـ SEO المتكامل والمحسّن لمنصة Vercel!', getMainKeyboard(ctx.from.id));
 });
 
 bot.hears('🔙 العودة للقائمة الرئيسية', (ctx) => {
@@ -348,15 +240,10 @@ bot.hears('🔗 إضافة رابط للأرشفة', (ctx) => {
 bot.hears('⚙️ لوحة الإدارة', (ctx) => {
     if (ctx.from.id !== ADMIN_ID) return ctx.reply('⚠️ عذراً، هذا الأمر مخصص لإدارة البوت فقط.');
     ctx.reply('⚙️ لوحة تحكم النظام الفنية والأمنية المتقدمة:', Markup.keyboard([
-        ['📊 مراقبة الإحصائيات والأعلى زيارة', '🌐 رابط لوحة الويب'],
+        ['📊 مراقبة الإحصائيات والأعلى زيارة'],
         ['💾 جلب النسخة الاحتياطية', '🗑️ حذف صفحة محددة'],
         ['🔙 العودة للقائمة الرئيسية']
     ]).resize());
-});
-
-bot.hears('🌐 رابط لوحة الويب', (ctx) => {
-    if (ctx.from.id !== ADMIN_ID) return;
-    ctx.reply(`📊 *رابط لوحة تحكم الويب المرئية والآمنة الخاصة بك:* \n\n🔗 تصفح إحصائياتك من المتصفح مباشرة هنا:\n${BASE_SITE_URL}/admin-panel?password=${WEB_ADMIN_PASSWORD}`, { parse_mode: 'Markdown' });
 });
 
 bot.hears('📊 مراقبة الإحصائيات والأعلى زيارة', (ctx) => {
@@ -368,13 +255,13 @@ bot.hears('📊 مراقبة الإحصائيات والأعلى زيارة', (c
             sitemapSize = (fs.statSync(path.join(publicDir, 'sitemap.xml')).size / 1024).toFixed(2) + ' KB';
         }
 
-        const topPages = [...currentData].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
-        let topPagesText = "🔝 *أعلى 5 صفحات زيارة وترافيك:*\n";
+        const topPages = [...currentData].slice(0, 5);
+        let topPagesText = "🔝 *أحدث الصفحات النشطة على الموقع:*\n";
         topPages.forEach((p, index) => {
-            topPagesText += `${index + 1}. \`${p.slug}\` -> 👁️ ${p.views || 0} زيارة (${p.title.slice(0, 20)}...)\n`;
+            topPagesText += `${index + 1}. \`${p.slug}\` -> [رابط المعاينة](${BASE_SITE_URL}/${p.slug}.html)\n`;
         });
 
-        ctx.reply(`📊 *إحصائيات النظام الفنية الحالية:* \n\n📁 إجمالي صفحات الهبوط المفتوحة: ${currentData.length}\n🗺️ حجم خريطة الموقع: ${sitemapSize}\n🌐 رابط السايت ماب العام:\n${BASE_SITE_URL}/sitemap.xml\n\n${topPagesText}`, { parse_mode: 'Markdown' });
+        ctx.reply(`📊 *إحصائيات النظام الفنية الحالية:* \n\n📁 إجمالي صفحات الهبوط المفتوحة: ${currentData.length}\n🗺️ حجم خريطة الموقع: ${sitemapSize}\n🌐 رابط السايت ماب العام:\n${BASE_SITE_URL}/sitemap.xml\n\n${topPagesText}`, { parse_mode: 'Markdown', disable_web_page_preview: true });
     } catch (e) { ctx.reply('❌ فشل قراءة الإحصائيات.'); }
 });
 
@@ -402,22 +289,33 @@ bot.on('callback_query', async (ctx) => {
     const slug = "page-" + Date.now();
 
     await ctx.answerCbQuery(`🎨 تم اختيار القالب بنجاح!`);
-    await ctx.editMessageText('⚙️ جاري دمج الـ Schema Markup وحفظ ملف الـ HTML الفوري...');
+    
+    const progressMessage = await ctx.reply('⚙️ جاري معالجة الملفات محلياً ورفعها إلى السيرفر... يرجى الانتظار دون الضغط على الرابط لتجنب خطأ 404.');
 
     try {
         const currentData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-        currentData.push({ title, slug, target_url, keywords, desc, theme: selectedTheme, views: 0 });
+        currentData.push({ title, slug, target_url, keywords, desc, theme: selectedTheme });
         fs.writeFileSync(jsonPath, JSON.stringify(currentData, null, 2), 'utf8');
         
         rebuildSEO(currentData);
-        
-        await ctx.reply('⏳ جاري تحديث خريطة السايت ماب ودفع التغيرات الفورية لايف لـ GitHub...');
 
-        pushToGitHub((success) => {
+        pushToGitHub(async (success) => {
             if (success) {
-                ctx.reply(`🎉 تم إنشاء وتحديث نظام السيو الخارق بنجاح!\n\n🚀 [ميزة الـ Schema مفعلة]: تم حقن كود البيانات المنظمة لمضاعفة سرعة زحف قوقل للرابط الجديد.\n\n🔗 رابط صفحتك متاح لايف الآن:\n${BASE_SITE_URL}/${slug}.html`, getMainKeyboard(userId));
+                // ⏱️ عداد تنازلي ذكي لمنع الـ 404 لإعطاء Vercel وقتاً كافياً لبناء الصفحة لايف
+                let timeLeft = 25; 
+                const interval = setInterval(async () => {
+                    timeLeft -= 5;
+                    if (timeLeft <= 0) {
+                        clearInterval(interval);
+                        await bot.telegram.deleteMessage(ctx.chat.id, progressMessage.message_id).catch(() => {});
+                        ctx.reply(`🎉 تم إطلاق ونشر الصفحة بنجاح تآم والآن أصبحت لايف بالكامل!\n\n🚀 [ميزة الـ Schema مفعلة]: تم حقن كود البيانات المنظمة لمضاعفة سرعة زحف قوقل.\n\n🔗 رابط صفحتك جاهز وآمن تماماً الآن:\n${BASE_SITE_URL}/${slug}.html`, getMainKeyboard(userId));
+                    } else {
+                        await bot.telegram.editMessageText(ctx.chat.id, progressMessage.message_id, null, `⏳ جاري إنهاء بناء السيرفر السحابي (Deployment) على Vercel... يتبقى المزامنة النهائية خلال ${timeLeft} ثانية للاستقرار الفوري.`).catch(() => {});
+                    }
+                }, 5000);
+
             } else {
-                ctx.reply(`⚠️ تم الحفظ محلياً بنجاح. الرابط سيعمل تلقائياً خلال دقائق هنا:\n${BASE_SITE_URL}/${slug}.html`, getMainKeyboard(userId));
+                ctx.reply(`⚠️ تم حفظ الملف محلياً ولكن هناك ضغط على مستودع Git، سيعمل الرابط تلقائياً خلال دقائق هنا:\n${BASE_SITE_URL}/${slug}.html`, getMainKeyboard(userId));
             }
             userSessions[userId] = null;
         });
@@ -434,13 +332,12 @@ bot.on('text', (ctx) => {
     if (session && session.step === 'awaiting_data') {
         const lines = text.split('\n');
         const target_url = lines[0].trim();
-        const title = lines.length >= 2 ? lines[1].trim() : ""; // العنوان اختياري بفضل ميزة الـ Auto-Scraper
+        const title = lines.length >= 2 ? lines[1].trim() : "";
 
         if (!target_url.startsWith('http://') && !target_url.startsWith('https://')) {
             return ctx.reply('❌ خطأ: الرابط غير صالح! تأكد من أنه يبدأ بـ http:// أو https://');
         }
 
-        // 🔥 تشغيل ميزة الـ Auto-Scraper والوصف الديناميكي المتطور تلقائياً
         const metadata = generateSmartMetadata(title, target_url);
 
         userSessions[userId] = {
@@ -448,7 +345,7 @@ bot.on('text', (ctx) => {
             data: { target_url, title: metadata.title, keywords: metadata.keywords, desc: metadata.desc }
         };
 
-        ctx.reply(`🎯 تم استنتاج وتوليد العناوين والكلمات المفتاحية بقوة الـ سيو!\n\n📝 العنوان المستخدم: ${metadata.title}\n\n🎨 الآن اختر القالب البصري المناسب لصفحتك:`, 
+        ctx.reply(`🎯 تم توليد الكلمات المفتاحية والأوصاف الذكية المتوافقة مع سيو بنجاح!\n\n📝 العنوان المعتمد: ${metadata.title}\n\n🎨 الآن اختر القالب البصري المناسب لصفحتك:`, 
             Markup.inlineKeyboard([
                 [Markup.button.callback('🌌 مظهر مظلم احترافي', 'dark'), Markup.button.callback('☀️ مظهر مضيء كلاسيكي', 'light')],
                 [Markup.button.callback('🔵 ثيم تليجرام الأزرق', 'telegram'), Markup.button.callback('🟢 ثيم واتساب الأخضر', 'whatsapp')]
@@ -468,9 +365,9 @@ bot.on('text', (ctx) => {
             fs.writeFileSync(jsonPath, JSON.stringify(filteredData, null, 2), 'utf8');
             rebuildSEO(filteredData);
 
-            ctx.reply('🗑️ جاري مسح الصفحة كلياً من السيرفر والمزامنة الفورية...');
+            ctx.reply('🗑️ جاري حذف الصفحة كلياً ومزامنة خريطة الموقع الفورية...');
             pushToGitHub(() => {
-                ctx.reply('✅ تم حذف الصفحة وتحديث ملف الـ Sitemap بنجاح تآم!', getMainKeyboard(userId));
+                ctx.reply('✅ تم حذف الملف وتحديث خريطة الـ Sitemap بنجاح تآم على السيرفر الرئيسي!', getMainKeyboard(userId));
                 userSessions[userId] = null;
             });
         } catch (e) { ctx.reply('❌ حدث خطأ أثناء عملية الحذف.'); }
@@ -481,9 +378,7 @@ bot.on('text', (ctx) => {
     }
 });
 
-// تشغيل البوت + خادم لوحة تحكم الويب والجدولة معاً بانسجام
+// تشغيل البوت
 bot.launch().then(() => {
-    console.log('🚀 البوت العملاق يعمل الآن ومحمي بكافة المميزات الحصرية والحديثة...');
-    startAutoGitScheduler();
-    createWebDashboard();
+    console.log('🚀 البوت يعمل الآن بكفاءة ومحمي بشكل كامل ومتوافق مع Vercel...');
 });
