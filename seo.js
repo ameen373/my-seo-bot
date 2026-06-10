@@ -91,8 +91,10 @@ bot.on('text', (ctx) => {
         rebuildSEO(currentData);
         ctx.reply('⏳ جاري حفظ الصفحة الجديدة ودفعها إلى GitHub لتحديث Vercel...');
 
-        // الكود يجعل البوت يسحب التحديثات أولاً ثم يرفع لتفادي أي رفض مستقبلي
-const gitCommands = 'git pull origin main --rebase && git add . && git commit -m "Add new SEO page" && git push origin main';
+                ctx.reply('⏳ جاري حفظ الصفحة الجديدة ودفعها إلى GitHub لتحديث Vercel...');
+
+        // 🚀 الترتيب الذكي الجديد: الحفظ أولاً، ثم السحب والدمج مع تفضيل ملفاتك المحلية، ثم الرفع النهائي
+        const gitCommands = 'git add . && git commit -m "Add new SEO page" && git pull origin main --rebase -X ours && git push origin main';
 
         exec(gitCommands, (error, stdout, stderr) => {
             if (error) {
@@ -109,5 +111,3 @@ const gitCommands = 'git pull origin main --rebase && git add . && git commit -m
 });
 
 bot.launch().then(() => console.log('🚀 البوت الذكي يعمل ويقرأ البيانات من الـ .env الآمن...'));
-
-    
