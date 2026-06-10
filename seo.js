@@ -64,8 +64,16 @@ function rebuildSEO(data) {
         fs.writeFileSync(path.join(publicDir, `${item.slug}.html`), htmlContent, 'utf8');
         sitemapUrls += `  <url>\n    <loc>${BASE_SITE_URL}/${item.slug}.html</loc>\n    <priority>0.9</priority>\n  </url>\n`;
     });
+
+    // 1. بناء ملف سيت ماب نظيف ومطابق للمعايير
     const sitemapContent = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemapUrls}</urlset>`;
     fs.writeFileSync(path.join(publicDir, 'sitemap.xml'), sitemapContent, 'utf8');
+    console.log("✅ تم تحديث ملف sitemap.xml");
+
+    // 2. بناء ملف robots.txt منظم بأسطر فارغة لمنع أخطاء جوجل
+    const robotsContent = `User-agent: *\nAllow: /\n\nSitemap: ${BASE_SITE_URL}/sitemap.xml\n`;
+    fs.writeFileSync(path.join(publicDir, 'robots.txt'), robotsContent, 'utf8');
+    console.log("✅ تم تحديث ملف robots.txt وتصحيح الصيغة");
 }
 
 bot.start((ctx) => ctx.reply('🚀 أرسل البيانات هكذا:\n\nالرابط\nالعنوان\nالكلمات المفتاحية\nالوصف'));
@@ -88,12 +96,12 @@ bot.on('text', (ctx) => {
         currentData.push(newItem);
         fs.writeFileSync(jsonPath, JSON.stringify(currentData, null, 2), 'utf8');
         
+        // إعادة بناء الصفحات، والـ Sitemap، والـ Robots محلياً
         rebuildSEO(currentData);
+        
         ctx.reply('⏳ جاري حفظ الصفحة الجديدة ودفعها إلى GitHub لتحديث Vercel...');
 
-                ctx.reply('⏳ جاري حفظ الصفحة الجديدة ودفعها إلى GitHub لتحديث Vercel...');
-
-        // 🚀 الترتيب الذكي الجديد: الحفظ أولاً، ثم السحب والدمج مع تفضيل ملفاتك المحلية، ثم الرفع النهائي
+        // 🚀 الترتيب الذكي: الحفظ أولاً، ثم السحب والدمج الآمن، ثم الرفع النهائي
         const gitCommands = 'git add . && git commit -m "Add new SEO page" && git pull origin main --rebase -X ours && git push origin main';
 
         exec(gitCommands, (error, stdout, stderr) => {
