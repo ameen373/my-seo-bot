@@ -1,19 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-<<<<<<< HEAD
-    <loc>https://your-project-name.vercel.app/</loc>
-    <lastmod>2026-06-09</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>
-
-  <url>
-    <loc>https://my-seo-bot.vercel.app/</loc>
-    <priority>0.8</priority>
-  </url>
-</urlset>
-=======
     <loc>https://my-seo-bot.vercel.app/page-1781099393083.html</loc>
     <priority>0.9</priority>
   </url>
@@ -21,5 +8,16 @@
     <loc>https://my-seo-bot.vercel.app/page-1781100295242.html</loc>
     <priority>0.9</priority>
   </url>
+  <url>
+    <loc>https://my-seo-bot.vercel.app/page-1781101636114.html</loc>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://my-seo-bot.vercel.app/page-1781103461098.html</loc>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://my-seo-bot.vercel.app/page-1781104103984.html</loc>
+    <priority>0.9</priority>
+  </url>
 </urlset>
->>>>>>> 00b9244 (Add new SEO page)
