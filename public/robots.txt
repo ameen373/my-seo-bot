@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://my-seo-bot.vercel.app/sitemap.xml
