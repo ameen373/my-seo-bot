@@ -60,7 +60,6 @@ function getThemeStyles(theme) {
     }
 }
 
-// دالة توليد تعليقات ديناميكية بناءً على نوع محتوى الصفحة (Social Proof System)
 function getDynamicReviews(title) {
     const text = title.toLowerCase();
     if (text.includes('قناة') || text.includes('تليجرام')) {
@@ -81,7 +80,6 @@ function getDynamicReviews(title) {
     }
 }
 
-// 🌐 دالة فحص استقرار الروابط (يدعم الروابط المتعددة المدمجة لـ A/B Testing)
 function validateUrls(urlsString) {
     return new Promise(async (resolve) => {
         const urls = urlsString.split(',').map(u => u.trim());
@@ -98,7 +96,7 @@ function validateUrls(urlsString) {
     });
 }
 
-// 2️⃣ توليد الـ HTML المتقدم والشامل مع فلاتر الـ A/B Testing وقسم التقييمات المرئي
+// 2️⃣ توليد الـ HTML المتقدم مع أنظمة الحماية (Anti-Spy) والتحليلات (Micro Analytics)
 function generateHTML(item) {
     const theme = getThemeStyles(item.theme || 'dark');
     const reviews = getDynamicReviews(item.title);
@@ -113,7 +111,6 @@ function generateHTML(item) {
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
     };
 
-    // تحويل مصفوفة التعليقات إلى كود HTML منسق بصرياً
     const reviewsHTML = reviews.map(r => `
         <div class="review-card">
             <div class="review-user">👤 ${r.user} <span style="font-size:12px; float:left;">${r.stars}</span></div>
@@ -149,7 +146,6 @@ function generateHTML(item) {
         .btn { display: inline-block; background: ${theme.btnBg}; color: white; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: bold; width: 90%; transition: background 0.3s; box-sizing: border-box; }
         .btn:hover { background: ${theme.btnHover}; }
         
-        /* 🌟 ستايلات واجهة التعليقات والمراجعات المدمجة */
         .reviews-section { margin-top: 25px; border-top: 1px solid ${theme.desc}44; padding-top: 15px; text-align: right; }
         .reviews-title { font-size: 14px; font-weight: bold; color: ${theme.titleColor}; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
         .review-card { background: ${theme.cardBg}; padding: 10px 12px; border-radius: 8px; margin-bottom: 10px; }
@@ -158,7 +154,7 @@ function generateHTML(item) {
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container" id="main-content">
         <h1>${item.title}</h1>
         <p>${item.desc}</p>
         
@@ -175,17 +171,41 @@ function generateHTML(item) {
     </div>
 
     <script>
+        // 🛡️ 1️⃣ درع الحماية الذكي ضد أدوات الفحص والتجسس البرمجية (Anti-Spy Shield)
+        const spyBots = [/lighthouse/i, /headless/i, /python/i, /curl/i, /wget/i, /selenium/i, /puppeteer/i];
+        const isSpy = spyBots.some(bot => bot.test(navigator.userAgent));
+        
+        if (isSpy) {
+            document.getElementById('main-content').innerHTML = "<h1>403 Forbidden</h1><p>عذراً، هذا الطلب غير مسموح به حالياً.</p>";
+            throw new Error("Spy Bot Detected & Blocked.");
+        }
+
         let seconds = 5;
         const countdownEl = document.getElementById('countdown');
         const timerContainer = document.getElementById('timer-container');
         const redirectBtn = document.getElementById('redirect-btn');
 
-        // 🔥 1️⃣ لوحة الفرز والتحويل الذكي لـ A/B Split Testing بالتناوب العشوائي المتوازن
         const targetUrlsString = \`${item.target_url}\`;
         const urlsArray = targetUrlsString.split(',').map(u => u.trim());
         const selectedUrl = urlsArray[Math.floor(Math.random() * urlsArray.length)];
         
         redirectBtn.href = selectedUrl;
+
+        // 📊 2️⃣ نظام التحليلات المصغر والمستقل (Privacy-First Micro Analytics) عبر الـ LocalStorage المتقدم
+        function logAnalytics(type) {
+            try {
+                let stats = JSON.parse(localStorage.getItem('seo_stats_' + '${item.slug}')) || { views: 0, clicks: 0, device: 'Mobile' };
+                if (window.innerWidth > 768) stats.device = 'Desktop';
+                
+                if (type === 'view') stats.views++;
+                if (type === 'click') stats.clicks++;
+                
+                localStorage.setItem('seo_stats_' + '${item.slug}', JSON.stringify(stats));
+            } catch(e){}
+        }
+
+        logAnalytics('view');
+        redirectBtn.addEventListener('click', () => logAnalytics('click'));
 
         const interval = setInterval(() => {
             seconds--;
@@ -201,7 +221,41 @@ function generateHTML(item) {
 </html>`;
 }
 
-// 1️⃣ ميزة الوصف الذكي والـ Auto-Scraper التلقائي لاستنتاج الكلمات المفتاحية
+// 3️⃣ توليد صفحة الخطأ 404 الذكية والمخصصة تلقائياً للحفاظ على الزوار وقوة السيو (Dynamic 404)
+function generate404Page(lastItems) {
+    let linksHTML = lastItems.map(item => `<li><a href="${BASE_SITE_URL}/${item.slug}.html">${item.title}</a></li>`).join('');
+    return `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الصفحة غير موجودة - 404</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #f8fafc; text-align: center; padding: 50px 20px; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; box-sizing: border-box; }
+        .box { background: #1e293b; max-width: 500px; width: 100%; padding: 30px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); }
+        h1 { color: #ef4444; font-size: 48px; margin: 0 0 10px 0; }
+        h2 { font-size: 20px; margin-bottom: 15px; color: #38bdf8; }
+        p { color: #94a3b8; font-size: 14px; line-height: 1.6; }
+        ul { text-align: right; background: #334155; padding: 15px 30px; border-radius: 8px; list-style-type: square; margin-top: 20px; }
+        li { margin-bottom: 8px; font-size: 13px; }
+        a { color: #38bdf8; text-decoration: none; font-weight: bold; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>404</h1>
+        <h2>عذراً، الرابط المطلق قد يكون انتهى أو تم نقله!</h2>
+        <p>لحمايتك وضمان حصولك على المحتوى، إليك أحدث القنوات والمجموعات النشطة والموثوقة المتاحة الآن في موقعنا:</p>
+        <ul>
+            ${linksHTML || '<li>لا توجد روابط نشطة حالياً، عد لاحقاً!</li>'}
+        </ul>
+        <p style="margin-top:20px;"><a href="${BASE_SITE_URL}/sitemap.xml">🌐 تصفح خريطة الموقع العامة</a></p>
+    </div>
+</body>
+</html>`;
+}
+
 function generateSmartMetadata(title, targetUrl) {
     let finalTitle = title ? title.trim() : "";
     const primaryUrl = targetUrl.split(',')[0].trim();
@@ -222,7 +276,6 @@ function generateSmartMetadata(title, targetUrl) {
     let desc = `اضغط هنا للانتقال المباشر لخدمة: ${finalTitle}. رابط آمن ومحدث مع تحويل تلقائي لجميع الزوار مجاناً.`;
     
     const text = finalTitle.toLowerCase();
-
     if (text.includes('قناة') || text.includes('تليجرام') || primaryUrl.includes('t.me')) {
         aiTags.push('قنوات تليجرام', 'رابط تليجرام رسمي', 'انضمام تليجرام');
         desc = `الدخول المباشر إلى قناة التليجرام الرسمية [ ${finalTitle} ]. اضغط هنا للانضمام الفوري والاطلاع على المحتوى الحصري والمحدث اليوم مجاناً.`;
@@ -235,7 +288,6 @@ function generateSmartMetadata(title, targetUrl) {
     return { title: finalTitle, keywords, desc };
 }
 
-// دالة إعادة بناء السايت ماب والملفات محلياً
 function rebuildSEO(data) {
     const files = fs.readdirSync(publicDir);
     files.forEach(file => {
@@ -249,6 +301,11 @@ function rebuildSEO(data) {
         fs.writeFileSync(path.join(publicDir, `${item.slug}.html`), htmlContent, 'utf8');
     });
 
+    // توليد وحقن صفحة الـ 404 المخصصة من آخر 5 روابط نشطة بالسيو تلقائياً
+    const lastFive = [...data].reverse().slice(0, 5);
+    const html404 = generate404Page(lastFive);
+    fs.writeFileSync(path.join(publicDir, '404.html'), html404, 'utf8');
+
     const sitemapUrls = data.map(item => `  <url>\n    <loc>${BASE_SITE_URL}/${item.slug}.html</loc>\n    <priority>0.9</priority>\n  </url>\n`).join('');
     const sitemapContent = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemapUrls}</urlset>`;
     fs.writeFileSync(path.join(publicDir, 'sitemap.xml'), sitemapContent, 'utf8');
@@ -257,12 +314,11 @@ function rebuildSEO(data) {
     fs.writeFileSync(path.join(publicDir, 'robots.txt'), robotsContent, 'utf8');
 }
 
-// دالة الرفع لـ GitHub
 function pushToGitHub(callback) {
     if (isGitSyncing) return callback ? callback(false) : null;
     isGitSyncing = true;
 
-    const gitCommands = 'git add . && git commit -m "Vercel Ultimate System Update" && git push origin main';
+    const gitCommands = 'git add . && git commit -m "Vercel Enterprise Production Guard" && git push origin main';
     exec(gitCommands, (error) => {
         isGitSyncing = false;
         if (error) {
@@ -282,7 +338,7 @@ function getMainKeyboard(userId) {
 
 bot.start((ctx) => {
     userSessions[ctx.from.id] = null;
-    ctx.reply('🚀 مرحباً بك في أقوى نظام سيو ذكي، متكامل ومحسّن كلياً لـ Vercel والتصدر الفيروسي!', getMainKeyboard(ctx.from.id));
+    ctx.reply('🚀 مرحباً بك في أقوى نظام سيو ذكي متكامل ومحمي بالكامل ضد هجمات التجسس والبوتات!', getMainKeyboard(ctx.from.id));
 });
 
 bot.hears('🔙 العودة للقائمة الرئيسية', (ctx) => {
@@ -337,17 +393,13 @@ bot.hears('🗑️ حذف صفحة محددة', (ctx) => {
 bot.on('callback_query', async (ctx) => {
     const userId = ctx.from.id;
     const session = userSessions[userId];
-    
     if (!session) return ctx.answerCbQuery('⚠️ انتهت صلاحية هذه الجلسة، ابدأ من جديد.');
 
-    // 1. التعامل مع اختيار الثيم البصري
     if (session.step === 'awaiting_theme') {
         const selectedTheme = ctx.callbackQuery.data;
         session.theme = selectedTheme;
-        
         await ctx.answerCbQuery('🎨 تم حفظ الثيم البصري!');
         session.step = 'awaiting_slug_choice';
-        
         return ctx.editMessageText('⚙️ الآن اختر طريقة إنشاء الرمز الفريد للرابط (Slug) لتنظيم السيو:',
             Markup.inlineKeyboard([
                 [Markup.button.callback('🕒 توليد رمز تلقائي بالوقت', 'slug_auto')],
@@ -356,7 +408,6 @@ bot.on('callback_query', async (ctx) => {
         );
     }
 
-    // 2. معالجة اختيار نوع الرمز الـ Slug
     if (session.step === 'awaiting_slug_choice') {
         const choice = ctx.callbackQuery.data;
         if (choice === 'slug_auto') {
@@ -371,18 +422,15 @@ bot.on('callback_query', async (ctx) => {
     }
 });
 
-// دالة الإنهاء والحفظ النهائي الفوري على Vercel
 async function finalizePageCreation(ctx, userId, slug) {
     const session = userSessions[userId];
     const { target_url, title, keywords, desc, theme } = session.data || session;
     const finalTheme = theme || session.theme;
 
-    const progressMessage = await ctx.reply('⚙️ جاري معالجة الأكواد والـ Dynamic Reviews وحقن البيانات المنظمة...');
+    const progressMessage = await ctx.reply('⚙️ جاري معالجة نظام التحليلات، وبناء درع الحماية، وحقن صفحة الـ 404 المخصصة...');
 
     try {
         const currentData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-        
-        // التحقق من عدم تكرار الـ Slug المخصص
         if (currentData.some(item => item.slug === slug)) {
             return ctx.reply('❌ هذا الرمز مستخدم بالفعل في صفحة أخرى! يرجى البدء من جديد واختيار رمز مختلف.', getMainKeyboard(userId));
         }
@@ -401,10 +449,10 @@ async function finalizePageCreation(ctx, userId, slug) {
                         clearInterval(interval);
                         await bot.telegram.deleteMessage(ctx.chat.id, progressMessage.message_id).catch(() => {});
                         
-                        ctx.reply(`🎉 تم إطلاق ونشر صفحتك الاحترافية بنجاح لايف!\n\n🚀 [الخصائص المفعلة]:\n• نظام التدوير والفرز الذكي A/B Testing.\n• لوحة تقييمات ومراجعات فيروسية حية.\n• الرمز والـ Slug المخصص الصديق لمحركات البحث.\n\n🔗 رابط صفحتك الآن جاهز كلياً:\n${BASE_SITE_URL}/${slug}.html`, getMainKeyboard(userId));
+                        ctx.reply(`🎉 تم إطلاق ونشر صفحتك الاحترافية بنجاح لايف وجاهزة لاستقبال الترافيك المليوني!\n\n🛡️ [درع الحماية]: نشط لحجب أدوات التجسس والبوتات.\n📊 [التحليلات]: تقوم بتسجيل المشاهدات والنقرات محلياً.\n❌ [نظام 404]: تم تحديث الصفحة المخصصة تلقائياً.\n\n🔗 رابط صفحتك الآن جاهز كلياً:\n${BASE_SITE_URL}/${slug}.html`, getMainKeyboard(userId));
                         
                         if (userId !== ADMIN_ID && ADMIN_ID !== 0) {
-                            bot.telegram.sendMessage(ADMIN_ID, `🔔 **إشعار الإدارة الفوري:**\nتم توليد صفحة هبوط سيو جديدة ومزامنتها لايف!\n\n📝 العنوان: ${title}\n🔗 الرابط: ${BASE_SITE_URL}/${slug}.html`, { parse_mode: 'Markdown' }).catch(()=>{});
+                            bot.telegram.sendMessage(ADMIN_ID, `🔔 **إشعار الإدارة الفوري:**\nتم توليد صفحة هبوط جديدة محمية ومؤرشفة بالكامل!\n\n📝 العنوان: ${title}\n🔗 الرابط: ${BASE_SITE_URL}/${slug}.html`, { parse_mode: 'Markdown' }).catch(()=>{});
                         }
                     } else {
                         await bot.telegram.editMessageText(ctx.chat.id, progressMessage.message_id, null, `⏳ جاري إنهاء بناء السيرفر السحابي (Deployment) على Vercel... يتبقى المزامنة النهائية خلال ${timeLeft} ثانية للاستقرار الفوري.`).catch(() => {});
@@ -455,10 +503,8 @@ bot.on('text', async (ctx) => {
     } 
     
     else if (session && session.step === 'awaiting_custom_slug_text') {
-        // تنظيف الـ Slug المدخل ليكون متوافقاً مع الروابط (بدون مسافات أو رموز غريبة)
         const cleanSlug = text.toLowerCase().replace(/[^a-z0-9-_]/g, '-').replace(/-+/g, '-');
         if (!cleanSlug) return ctx.reply('⚠️ الرمز غير صالح، أرسل رمزاً يحتوي على أحرف وأرقام إنجليزية فقط.');
-        
         session.step = null; 
         return finalizePageCreation(ctx, userId, cleanSlug);
     }
@@ -477,7 +523,7 @@ bot.on('text', async (ctx) => {
 
             ctx.reply('🗑️ جاري حذف الصفحة كلياً ومزامنة خريطة الموقع الفورية...');
             pushToGitHub(() => {
-                ctx.reply('✅ تم حذف الملف وتحديث خريطة الـ Sitemap بنجاح تآم على السيرفر الرئيسي!', getMainKeyboard(userId));
+                ctx.reply('✅ تم حذف الملف وتحديث خريطة الـ Sitemap وصفحة الـ 404 المخصصة بنجاح على السيرفر الرئيسي!', getMainKeyboard(userId));
                 userSessions[userId] = null;
             });
         } catch (e) { ctx.reply('❌ حدث خطأ أثناء عملية الحذف.'); }
@@ -488,7 +534,6 @@ bot.on('text', async (ctx) => {
     }
 });
 
-// إطلاق البوت
 bot.launch().then(() => {
-    console.log('🚀 تم تشغيل النظام المطور بأعلى الميزات الخارقة بنجاح...');
+    console.log('🚀 تم تشغيل النظام المطور بالكامل بأعلى حزمة حماية وأرشفة خارقة لعام 2026...');
 });

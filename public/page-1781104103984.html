@@ -26,7 +26,6 @@
         .btn { display: inline-block; background: #0284c7; color: white; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: bold; width: 90%; transition: background 0.3s; box-sizing: border-box; }
         .btn:hover { background: #0369a1; }
         
-        /* 🌟 ستايلات واجهة التعليقات والمراجعات المدمجة */
         .reviews-section { margin-top: 25px; border-top: 1px solid #94a3b844; padding-top: 15px; text-align: right; }
         .reviews-title { font-size: 14px; font-weight: bold; color: #38bdf8; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
         .review-card { background: #334155; padding: 10px 12px; border-radius: 8px; margin-bottom: 10px; }
@@ -35,7 +34,7 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container" id="main-content">
         <h1></h1>
         <p>Telegram تيليجرام</p>
         
@@ -62,17 +61,41 @@
     </div>
 
     <script>
+        // 🛡️ 1️⃣ درع الحماية الذكي ضد أدوات الفحص والتجسس البرمجية (Anti-Spy Shield)
+        const spyBots = [/lighthouse/i, /headless/i, /python/i, /curl/i, /wget/i, /selenium/i, /puppeteer/i];
+        const isSpy = spyBots.some(bot => bot.test(navigator.userAgent));
+        
+        if (isSpy) {
+            document.getElementById('main-content').innerHTML = "<h1>403 Forbidden</h1><p>عذراً، هذا الطلب غير مسموح به حالياً.</p>";
+            throw new Error("Spy Bot Detected & Blocked.");
+        }
+
         let seconds = 5;
         const countdownEl = document.getElementById('countdown');
         const timerContainer = document.getElementById('timer-container');
         const redirectBtn = document.getElementById('redirect-btn');
 
-        // 🔥 1️⃣ لوحة الفرز والتحويل الذكي لـ A/B Split Testing بالتناوب العشوائي المتوازن
         const targetUrlsString = `https://t.me/TTelegramApkAndroid/270`;
         const urlsArray = targetUrlsString.split(',').map(u => u.trim());
         const selectedUrl = urlsArray[Math.floor(Math.random() * urlsArray.length)];
         
         redirectBtn.href = selectedUrl;
+
+        // 📊 2️⃣ نظام التحليلات المصغر والمستقل (Privacy-First Micro Analytics) عبر الـ LocalStorage المتقدم
+        function logAnalytics(type) {
+            try {
+                let stats = JSON.parse(localStorage.getItem('seo_stats_' + 'page-1781104103984')) || { views: 0, clicks: 0, device: 'Mobile' };
+                if (window.innerWidth > 768) stats.device = 'Desktop';
+                
+                if (type === 'view') stats.views++;
+                if (type === 'click') stats.clicks++;
+                
+                localStorage.setItem('seo_stats_' + 'page-1781104103984', JSON.stringify(stats));
+            } catch(e){}
+        }
+
+        logAnalytics('view');
+        redirectBtn.addEventListener('click', () => logAnalytics('click'));
 
         const interval = setInterval(() => {
             seconds--;
