@@ -12,20 +12,26 @@
     <meta property="og:description" content="اضغط هنا للانتقال المباشر لخدمة: . رابط آمن ومحدث مع تحويل تلقائي لجميع المشتركين والزوار مجاناً عبر نظام الأرشفة الذكي.">
     <meta property="og:url" content="https://my-seo-bot.vercel.app/page-1781121339166.html">
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="SEO Engine Pro">
     
     <script type="application/ld+json">
         {"@context":"https://schema.org","@type":"SoftwareApplication","name":"","description":"اضغط هنا للانتقال المباشر لخدمة: . رابط آمن ومحدث مع تحويل تلقائي لجميع المشتركين والزوار مجاناً عبر نظام الأرشفة الذكي.","applicationCategory":"BusinessApplication","operatingSystem":"All","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
     </script>
 
     <style>
-        body { font-family: 'Segoe UI', sans-serif; text-align: center; background: #f8fafc; color: #0f172a; padding: 40px 20px; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .container { background: #ffffff; max-width: 500px; width: 100%; padding: 30px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); }
-        h1 { color: #0284c7; font-size: 22px; margin-bottom: 15px; }
-        p { color: #475569; line-height: 1.6; font-size: 15px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f8fafc; color: #0f172a; padding: 20px 10px; margin:0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; justify-content: center; }
+        .container { background: #ffffff; max-width: 480px; width: 100%; padding: 25px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); box-sizing: border-box; }
+        h1 { color: #0284c7; font-size: 20px; margin-bottom: 12px; }
+        p { color: #475569; line-height: 1.6; font-size: 14px; margin-bottom: 15px; }
         .timer-box { margin: 15px 0; font-size: 14px; color: #d97706; font-weight: bold; }
-        .btn { display: inline-block; background: #0284c7; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 15px; width: 80%; transition: background 0.3s; }
+        .btn { display: inline-block; background: #0284c7; color: white; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: bold; width: 90%; transition: background 0.3s; box-sizing: border-box; }
         .btn:hover { background: #0369a1; }
+        
+        /* 🌟 ستايلات واجهة التعليقات والمراجعات المدمجة */
+        .reviews-section { margin-top: 25px; border-top: 1px solid #47556944; padding-top: 15px; text-align: right; }
+        .reviews-title { font-size: 14px; font-weight: bold; color: #0284c7; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
+        .review-card { background: #f1f5f9; padding: 10px 12px; border-radius: 8px; margin-bottom: 10px; }
+        .review-user { font-size: 13px; font-weight: bold; color: #0284c7; margin-bottom: 4px; }
+        .review-comment { font-size: 12px; color: #334155; line-height: 1.4; }
     </style>
 </head>
 <body>
@@ -37,29 +43,44 @@
             سيتم تحويلك تلقائياً خلال <span id="countdown">5</span> ثوانٍ...
         </div>
 
-        <a href="https://t.me/TTelegramApkAndroid/270" id="redirect-btn" class="btn">الانتقال إلى الرابط المطلوب فوراً</a>
+        <a href="#" id="redirect-btn" class="btn">الانتقال إلى الرابط المطلوب فوراً</a>
+        
+        <div class="reviews-section">
+            <div class="reviews-title">💬 آراء وتقييمات الأعضاء والزوار (المصداقية العامة)</div>
+            
+        <div class="review-card">
+            <div class="review-user">👤 محمد البرمي <span style="font-size:12px; float:left;">⭐⭐⭐⭐⭐</span></div>
+            <div class="review-comment">رابط آمن وسريع جداً، تم التحويل بنجاح.</div>
+        </div>
+    
+        <div class="review-card">
+            <div class="review-user">👤 سامي الفني <span style="font-size:12px; float:left;">⭐⭐⭐⭐⭐</span></div>
+            <div class="review-comment">خدمة ممتازة وموثوقة كالعادة.</div>
+        </div>
+    
+        </div>
     </div>
 
     <script>
         let seconds = 5;
         const countdownEl = document.getElementById('countdown');
         const timerContainer = document.getElementById('timer-container');
-        const targetUrl = `https://t.me/TTelegramApkAndroid/270`;
+        const redirectBtn = document.getElementById('redirect-btn');
 
-        try {
-            let views = localStorage.getItem('view_' + 'page-1781121339166') || 0;
-            if(!views) {
-                localStorage.setItem('view_' + 'page-1781121339166', 1);
-            }
-        } catch(e){}
+        // 🔥 1️⃣ لوحة الفرز والتحويل الذكي لـ A/B Split Testing بالتناوب العشوائي المتوازن
+        const targetUrlsString = `https://t.me/TTelegramApkAndroid/270`;
+        const urlsArray = targetUrlsString.split(',').map(u => u.trim());
+        const selectedUrl = urlsArray[Math.floor(Math.random() * urlsArray.length)];
+        
+        redirectBtn.href = selectedUrl;
 
         const interval = setInterval(() => {
             seconds--;
             countdownEl.textContent = seconds;
             if (seconds <= 0) {
                 clearInterval(interval);
-                timerContainer.textContent = "جاري التحويل الآن...";
-                window.location.href = targetUrl;
+                timerContainer.textContent = "جاري التحويل الآمن الآن...";
+                window.location.href = selectedUrl;
             }
         }, 1000);
     </script>

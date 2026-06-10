@@ -7,7 +7,7 @@ const { Telegraf, Markup } = require('telegraf');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
-const https = require('https'); // مدمجة لفحص الروابط تلقائياً بأمان
+const https = require('https');
 
 // جلب البيانات من ملف .env تلقائياً
 const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -29,59 +29,79 @@ let isGitSyncing = false;
 if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir);
 if (!fs.existsSync(jsonPath)) fs.writeFileSync(jsonPath, '[]', 'utf8');
 
-// 🎨 دالة الستايلات والأيقونات المخصصة لكل ثيم (Favicon & Theme Engine)
+// 🎨 دالة الستايلات والأيقونات المخصصة لكل ثيم
 function getThemeStyles(theme) {
     switch (theme) {
         case 'light':
             return {
                 bg: '#f8fafc', container: '#ffffff', text: '#0f172a', desc: '#475569',
                 titleColor: '#0284c7', btnBg: '#0284c7', btnHover: '#0369a1', timerBox: '#d97706',
-                icon: '🔗'
+                icon: '🔗', cardBg: '#f1f5f9', reviewText: '#334155'
             };
         case 'telegram':
             return {
                 bg: '#e7ebf0', container: '#ffffff', text: '#222222', desc: '#707579',
                 titleColor: '#2481cc', btnBg: '#2481cc', btnHover: '#1c6ca8', timerBox: '#e67e22',
-                icon: '🔹'
+                icon: '🔹', cardBg: '#f4f6f9', reviewText: '#4a4a4a'
             };
         case 'whatsapp':
             return {
                 bg: '#dcf8c6', container: '#ffffff', text: '#303030', desc: '#575757',
                 titleColor: '#075e54', btnBg: '#25d366', btnHover: '#1ebd58', timerBox: '#b8860b',
-                icon: '🟢'
+                icon: '🟢', cardBg: '#f0fdf4', reviewText: '#3f3f46'
             };
         case 'dark':
         default:
             return {
                 bg: '#0f172a', container: '#1e293b', text: '#f8fafc', desc: '#94a3b8',
                 titleColor: '#38bdf8', btnBg: '#0284c7', btnHover: '#0369a1', timerBox: '#fbbf24',
-                icon: '🌌'
+                icon: '🌌', cardBg: '#334155', reviewText: '#cbd5e1'
             };
     }
 }
 
-// 🌐 دالة فحص أمان واستقرار الرابط تلقائياً قبل توليد السيو
-function validateUrl(targetUrl) {
-    return new Promise((resolve) => {
-        try {
-            // استخدام https.get بشكل سريع وغير حاصر للفحص
-            https.get(targetUrl, { timeout: 5000 }, (res) => {
-                // إذا كان الرابط يعطي استجابة مستقرة أو تحويل تلقائي فهو سليم
-                if (res.statusCode >= 200 && res.statusCode < 400) {
-                    resolve(true);
-                } else {
-                    resolve(false);
-                }
-            }).on('error', () => resolve(false));
-        } catch (e) {
-            resolve(false);
+// دالة توليد تعليقات ديناميكية بناءً على نوع محتوى الصفحة (Social Proof System)
+function getDynamicReviews(title) {
+    const text = title.toLowerCase();
+    if (text.includes('قناة') || text.includes('تليجرام')) {
+        return [
+            { user: "أحمد المالي", comment: "محتوى القناة أسطوري وأنصح بالانضمام فوراً!", stars: "⭐⭐⭐⭐⭐" },
+            { user: "خالد العالمي", comment: "التحويل سريع والقناة متفاعلة جداً شكراً لكم.", stars: "⭐⭐⭐⭐⭐" }
+        ];
+    } else if (text.includes('جروب') || text.includes('واتس')) {
+        return [
+            { user: "أبو فهد", comment: "مجموعة ممتازة والأعضاء متفاعلين على مدار الساعة.", stars: "⭐⭐⭐⭐⭐" },
+            { user: "سارة أحمد", comment: "رابط الانضمام شغال ومباشر، بالتوفيق.", stars: "⭐⭐⭐⭐⭐" }
+        ];
+    } else {
+        return [
+            { user: "محمد البرمي", comment: "رابط آمن وسريع جداً، تم التحويل بنجاح.", stars: "⭐⭐⭐⭐⭐" },
+            { user: "سامي الفني", comment: "خدمة ممتازة وموثوقة كالعادة.", stars: "⭐⭐⭐⭐⭐" }
+        ];
+    }
+}
+
+// 🌐 دالة فحص استقرار الروابط (يدعم الروابط المتعددة المدمجة لـ A/B Testing)
+function validateUrls(urlsString) {
+    return new Promise(async (resolve) => {
+        const urls = urlsString.split(',').map(u => u.trim());
+        for (let url of urls) {
+            if (!url.startsWith('http://') && !url.startsWith('https://')) return resolve(false);
+            const status = await new Promise((res) => {
+                try {
+                    https.get(url, { timeout: 4000 }, (r) => res(r.statusCode >= 200 && r.statusCode < 400)).on('error', () => res(false));
+                } catch (e) { res(false); }
+            });
+            if (!status) return resolve(false);
         }
+        resolve(true);
     });
 }
 
-// 2️⃣ توليد الـ HTML + نظام الـ Schema Markup + أيقونات السوشيال ميديا الاحترافية
+// 2️⃣ توليد الـ HTML المتقدم والشامل مع فلاتر الـ A/B Testing وقسم التقييمات المرئي
 function generateHTML(item) {
     const theme = getThemeStyles(item.theme || 'dark');
+    const reviews = getDynamicReviews(item.title);
     
     const schemaMarkup = {
         "@context": "https://schema.org",
@@ -90,12 +110,16 @@ function generateHTML(item) {
         "description": item.desc,
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "All",
-        "offers": {
-            "@type": "Offer",
-            "price": "0",
-            "priceCurrency": "USD"
-        }
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
     };
+
+    // تحويل مصفوفة التعليقات إلى كود HTML منسق بصرياً
+    const reviewsHTML = reviews.map(r => `
+        <div class="review-card">
+            <div class="review-user">👤 ${r.user} <span style="font-size:12px; float:left;">${r.stars}</span></div>
+            <div class="review-comment">${r.comment}</div>
+        </div>
+    `).join('');
 
     return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -111,20 +135,26 @@ function generateHTML(item) {
     <meta property="og:description" content="${item.desc}">
     <meta property="og:url" content="${BASE_SITE_URL}/${item.slug}.html">
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="SEO Engine Pro">
     
     <script type="application/ld+json">
         ${JSON.stringify(schemaMarkup)}
     </script>
 
     <style>
-        body { font-family: 'Segoe UI', sans-serif; text-align: center; background: ${theme.bg}; color: ${theme.text}; padding: 40px 20px; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .container { background: ${theme.container}; max-width: 500px; width: 100%; padding: 30px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); }
-        h1 { color: ${theme.titleColor}; font-size: 22px; margin-bottom: 15px; }
-        p { color: ${theme.desc}; line-height: 1.6; font-size: 15px; }
+        body { font-family: 'Segoe UI', sans-serif; background: ${theme.bg}; color: ${theme.text}; padding: 20px 10px; margin:0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; justify-content: center; }
+        .container { background: ${theme.container}; max-width: 480px; width: 100%; padding: 25px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); box-sizing: border-box; }
+        h1 { color: ${theme.titleColor}; font-size: 20px; margin-bottom: 12px; }
+        p { color: ${theme.desc}; line-height: 1.6; font-size: 14px; margin-bottom: 15px; }
         .timer-box { margin: 15px 0; font-size: 14px; color: ${theme.timerBox}; font-weight: bold; }
-        .btn { display: inline-block; background: ${theme.btnBg}; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 15px; width: 80%; transition: background 0.3s; }
+        .btn { display: inline-block; background: ${theme.btnBg}; color: white; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: bold; width: 90%; transition: background 0.3s; box-sizing: border-box; }
         .btn:hover { background: ${theme.btnHover}; }
+        
+        /* 🌟 ستايلات واجهة التعليقات والمراجعات المدمجة */
+        .reviews-section { margin-top: 25px; border-top: 1px solid ${theme.desc}44; padding-top: 15px; text-align: right; }
+        .reviews-title { font-size: 14px; font-weight: bold; color: ${theme.titleColor}; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
+        .review-card { background: ${theme.cardBg}; padding: 10px 12px; border-radius: 8px; margin-bottom: 10px; }
+        .review-user { font-size: 13px; font-weight: bold; color: ${theme.titleColor}; margin-bottom: 4px; }
+        .review-comment { font-size: 12px; color: ${theme.reviewText}; line-height: 1.4; }
     </style>
 </head>
 <body>
@@ -136,29 +166,34 @@ function generateHTML(item) {
             سيتم تحويلك تلقائياً خلال <span id="countdown">5</span> ثوانٍ...
         </div>
 
-        <a href="${item.target_url}" id="redirect-btn" class="btn">الانتقال إلى الرابط المطلوب فوراً</a>
+        <a href="#" id="redirect-btn" class="btn">الانتقال إلى الرابط المطلوب فوراً</a>
+        
+        <div class="reviews-section">
+            <div class="reviews-title">💬 آراء وتقييمات الأعضاء والزوار (المصداقية العامة)</div>
+            ${reviewsHTML}
+        </div>
     </div>
 
     <script>
         let seconds = 5;
         const countdownEl = document.getElementById('countdown');
         const timerContainer = document.getElementById('timer-container');
-        const targetUrl = \`${item.target_url}\`;
+        const redirectBtn = document.getElementById('redirect-btn');
 
-        try {
-            let views = localStorage.getItem('view_' + '${item.slug}') || 0;
-            if(!views) {
-                localStorage.setItem('view_' + '${item.slug}', 1);
-            }
-        } catch(e){}
+        // 🔥 1️⃣ لوحة الفرز والتحويل الذكي لـ A/B Split Testing بالتناوب العشوائي المتوازن
+        const targetUrlsString = \`${item.target_url}\`;
+        const urlsArray = targetUrlsString.split(',').map(u => u.trim());
+        const selectedUrl = urlsArray[Math.floor(Math.random() * urlsArray.length)];
+        
+        redirectBtn.href = selectedUrl;
 
         const interval = setInterval(() => {
             seconds--;
             countdownEl.textContent = seconds;
             if (seconds <= 0) {
                 clearInterval(interval);
-                timerContainer.textContent = "جاري التحويل الآن...";
-                window.location.href = targetUrl;
+                timerContainer.textContent = "جاري التحويل الآمن الآن...";
+                window.location.href = selectedUrl;
             }
         }, 1000);
     </script>
@@ -166,15 +201,16 @@ function generateHTML(item) {
 </html>`;
 }
 
-// 1️⃣ ميزة الوصف الذكي والـ Auto-Scraper التلقائي لاستنتاج العناوين
+// 1️⃣ ميزة الوصف الذكي والـ Auto-Scraper التلقائي لاستنتاج الكلمات المفتاحية
 function generateSmartMetadata(title, targetUrl) {
     let finalTitle = title ? title.trim() : "";
+    const primaryUrl = targetUrl.split(',')[0].trim();
     
     if (!finalTitle) {
-        if (targetUrl.includes('t.me/')) {
-            const parts = targetUrl.split('/');
+        if (primaryUrl.includes('t.me/')) {
+            const parts = primaryUrl.split('/');
             finalTitle = "رابط انضمام تليجرام - " + (parts[parts.length - 1] || "قناة رسمية");
-        } else if (targetUrl.includes('chat.whatsapp.com')) {
+        } else if (primaryUrl.includes('chat.whatsapp.com')) {
             finalTitle = "مجموعة واتساب نشطة ومحدثة اليوم";
         } else {
             finalTitle = "رابط تحويل خارجي آمن وسريع";
@@ -187,15 +223,12 @@ function generateSmartMetadata(title, targetUrl) {
     
     const text = finalTitle.toLowerCase();
 
-    if (text.includes('قناة') || text.includes('تليجرام') || targetUrl.includes('t.me')) {
+    if (text.includes('قناة') || text.includes('تليجرام') || primaryUrl.includes('t.me')) {
         aiTags.push('قنوات تليجرام', 'رابط تليجرام رسمي', 'انضمام تليجرام');
         desc = `الدخول المباشر إلى قناة التليجرام الرسمية [ ${finalTitle} ]. اضغط هنا للانضمام الفوري والاطلاع على المحتوى الحصري والمحدث اليوم مجاناً.`;
-    } else if (text.includes('جروب') || text.includes('واتس') || targetUrl.includes('whatsapp')) {
+    } else if (text.includes('جروب') || text.includes('واتس') || primaryUrl.includes('whatsapp')) {
         aiTags.push('قروبات واتساب 2026', 'روابط مجموعات واتساب', 'قروب واتس اب متفاعل');
         desc = `رابط الانضمام المباشر لجروب الواتساب النشط: [ ${finalTitle} ]. تواصل الآن مع أعضاء المجموعة وتبادل الخبرات والخدمات مجاناً وبأمان.`;
-    } else if (text.includes('تطبيق') || text.includes('تحميل') || text.includes('apk')) {
-        aiTags.push('تطبيقات أندرويد', 'تحميل مباشر apk', 'أحدث إصدار تطبيق');
-        desc = `رابط تحميل تطبيق [ ${finalTitle} ] بأحدث إصدار ومباشر APK. صفحة فحص أمان التطبيق والتحويل الفوري والآمن بدون إعلانات مزعجة.`;
     }
 
     const keywords = [...new Set([...cleanWords, ...aiTags])].join(', ');
@@ -224,12 +257,12 @@ function rebuildSEO(data) {
     fs.writeFileSync(path.join(publicDir, 'robots.txt'), robotsContent, 'utf8');
 }
 
-// دالة الرفع المباشر لـ GitHub
+// دالة الرفع لـ GitHub
 function pushToGitHub(callback) {
     if (isGitSyncing) return callback ? callback(false) : null;
     isGitSyncing = true;
 
-    const gitCommands = 'git add . && git commit -m "Vercel Enterprise Optimization" && git push origin main';
+    const gitCommands = 'git add . && git commit -m "Vercel Ultimate System Update" && git push origin main';
     exec(gitCommands, (error) => {
         isGitSyncing = false;
         if (error) {
@@ -249,7 +282,7 @@ function getMainKeyboard(userId) {
 
 bot.start((ctx) => {
     userSessions[ctx.from.id] = null;
-    ctx.reply('🚀 مرحباً بك في نظام الـ SEO المتكامل والمحسّن لمنصة Vercel بخصائص الذكاء الشامل!', getMainKeyboard(ctx.from.id));
+    ctx.reply('🚀 مرحباً بك في أقوى نظام سيو ذكي، متكامل ومحسّن كلياً لـ Vercel والتصدر الفيروسي!', getMainKeyboard(ctx.from.id));
 });
 
 bot.hears('🔙 العودة للقائمة الرئيسية', (ctx) => {
@@ -259,7 +292,7 @@ bot.hears('🔙 العودة للقائمة الرئيسية', (ctx) => {
 
 bot.hears('🔗 إضافة رابط للأرشفة', (ctx) => {
     userSessions[ctx.from.id] = { step: 'awaiting_data' };
-    ctx.reply('📥 أرسل لي الآن سطرين كاملين:\n\nالسطر الأول: الرابط المطلوب\nالسطر الثاني: عنوان الصفحة الذكي (أو أرسل الرابط بمفرده وسيتولى السكريبت استنتاج العنوان تلقائياً!)', Markup.keyboard([['🔙 العودة للقائمة الرئيسية']]).resize());
+    ctx.reply('📥 أرسل بيانات الرابط الآن بالتنسيق التالي:\n\nالسطر الأول: الرابط (يمكنك وضع روابط متعددة لـ A/B Testing مفصولة بفاصلة ,)\nالسطر الثاني: عنوان الصفحة الذكي (أو اترك السطر فارغاً للاستنتاج التلقائي)');
 });
 
 bot.hears('⚙️ لوحة الإدارة', (ctx) => {
@@ -292,34 +325,69 @@ bot.hears('📊 مراقبة الإحصائيات والأعلى زيارة', (c
 
 bot.hears('💾 جلب النسخة الاحتياطية', async (ctx) => {
     if (ctx.from.id !== ADMIN_ID) return;
-    try { await ctx.replyWithDocument({ source: jsonPath, filename: 'data_backup.json' }, { caption: '💾 نسخة احتياطية آمنة لقاعدة البيانات.' }); } catch (e) { ctx.reply('❌ حدث خطأ أثناء إرسال النسخة.'); }
+    try { await ctx.replyWithDocument({ source: jsonPath, filename: 'data_backup.json' }, { caption: '💾 نسخة احتياطية آمنة.' }); } catch (e) { ctx.reply('❌ حدث خطأ أثناء إرسال النسخة.'); }
 });
 
 bot.hears('🗑️ حذف صفحة محددة', (ctx) => {
     if (ctx.from.id !== ADMIN_ID) return;
     userSessions[ctx.from.id] = { step: 'awaiting_delete_slug' };
-    ctx.reply('❗ أرسل الـ الرمز الفريد (Slug) الخاص بالصفحة المراد حذفها.', { parse_mode: 'Markdown', ...Markup.keyboard([['🔙 العودة للقائمة الرئيسية']]).resize() });
+    ctx.reply('❗ أرسل الـ الرمز الفريد (Slug) الخاص بالصفحة المراد حذفها.');
 });
 
 bot.on('callback_query', async (ctx) => {
     const userId = ctx.from.id;
     const session = userSessions[userId];
     
-    if (!session || session.step !== 'awaiting_theme') {
-        return ctx.answerCbQuery('⚠️ انتهت صلاحية هذه الجلسة، ابدأ من جديد.');
+    if (!session) return ctx.answerCbQuery('⚠️ انتهت صلاحية هذه الجلسة، ابدأ من جديد.');
+
+    // 1. التعامل مع اختيار الثيم البصري
+    if (session.step === 'awaiting_theme') {
+        const selectedTheme = ctx.callbackQuery.data;
+        session.theme = selectedTheme;
+        
+        await ctx.answerCbQuery('🎨 تم حفظ الثيم البصري!');
+        session.step = 'awaiting_slug_choice';
+        
+        return ctx.editMessageText('⚙️ الآن اختر طريقة إنشاء الرمز الفريد للرابط (Slug) لتنظيم السيو:',
+            Markup.inlineKeyboard([
+                [Markup.button.callback('🕒 توليد رمز تلقائي بالوقت', 'slug_auto')],
+                [Markup.button.callback('✍️ كتابة رمز مخصص صديق للسيو', 'slug_custom')]
+            ])
+        );
     }
 
-    const selectedTheme = ctx.callbackQuery.data;
-    const { target_url, title, keywords, desc } = session.data;
-    const slug = "page-" + Date.now();
+    // 2. معالجة اختيار نوع الرمز الـ Slug
+    if (session.step === 'awaiting_slug_choice') {
+        const choice = ctx.callbackQuery.data;
+        if (choice === 'slug_auto') {
+            const slug = "page-" + Date.now();
+            await ctx.answerCbQuery();
+            return finalizePageCreation(ctx, userId, slug);
+        } else {
+            session.step = 'awaiting_custom_slug_text';
+            await ctx.answerCbQuery();
+            return ctx.editMessageText('✍️ أرسل لي الآن الرمز المخصص الذي تريده للرابط باللغة الإنجليزية بدون مسافات (مثال: `best-telegram-channels`):', { parse_mode: 'Markdown' });
+        }
+    }
+});
 
-    await ctx.answerCbQuery(`🎨 تم اختيار القالب بنجاح!`);
-    
-    const progressMessage = await ctx.reply('⚙️ جاري معالجة الملفات محلياً وحقن الـ OG Tags المتقدمة...');
+// دالة الإنهاء والحفظ النهائي الفوري على Vercel
+async function finalizePageCreation(ctx, userId, slug) {
+    const session = userSessions[userId];
+    const { target_url, title, keywords, desc, theme } = session.data || session;
+    const finalTheme = theme || session.theme;
+
+    const progressMessage = await ctx.reply('⚙️ جاري معالجة الأكواد والـ Dynamic Reviews وحقن البيانات المنظمة...');
 
     try {
         const currentData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-        currentData.push({ title, slug, target_url, keywords, desc, theme: selectedTheme });
+        
+        // التحقق من عدم تكرار الـ Slug المخصص
+        if (currentData.some(item => item.slug === slug)) {
+            return ctx.reply('❌ هذا الرمز مستخدم بالفعل في صفحة أخرى! يرجى البدء من جديد واختيار رمز مختلف.', getMainKeyboard(userId));
+        }
+
+        currentData.push({ title, slug, target_url, keywords, desc, theme: finalTheme });
         fs.writeFileSync(jsonPath, JSON.stringify(currentData, null, 2), 'utf8');
         
         rebuildSEO(currentData);
@@ -333,28 +401,24 @@ bot.on('callback_query', async (ctx) => {
                         clearInterval(interval);
                         await bot.telegram.deleteMessage(ctx.chat.id, progressMessage.message_id).catch(() => {});
                         
-                        // 🔗 إرسال الرابط النهائي للمستخدم
-                        ctx.reply(`🎉 تم إطلاق ونشر الصفحة بنجاح تآم والآن أصبحت لايف بالكامل!\n\n🚀 [ميزة الـ Schema مفعلة]: تم حقن كود البيانات المنظمة وميزات الـ OG Tags لجميع قوالب العرض.\n\n🔗 رابط صفحتك جاهز وآمن تماماً الآن:\n${BASE_SITE_URL}/${slug}.html`, getMainKeyboard(userId));
+                        ctx.reply(`🎉 تم إطلاق ونشر صفحتك الاحترافية بنجاح لايف!\n\n🚀 [الخصائص المفعلة]:\n• نظام التدوير والفرز الذكي A/B Testing.\n• لوحة تقييمات ومراجعات فيروسية حية.\n• الرمز والـ Slug المخصص الصديق لمحركات البحث.\n\n🔗 رابط صفحتك الآن جاهز كلياً:\n${BASE_SITE_URL}/${slug}.html`, getMainKeyboard(userId));
                         
-                        // 🔔 3️⃣ إرسال إشعار فوري حي للمسؤول (Admin Live Notification) ليؤكد الجاهزية لايف
                         if (userId !== ADMIN_ID && ADMIN_ID !== 0) {
-                            bot.telegram.sendMessage(ADMIN_ID, `🔔 **تنبيه حي من النظام:**\nقام مستخدم بإنشاء صفحة سيو جديدة بنجاح وهي لايف الآن!\n\n📝 العنوان: ${title}\n🔗 الرابط: ${BASE_SITE_URL}/${slug}.html`, { parse_mode: 'Markdown' }).catch(()=>{});
+                            bot.telegram.sendMessage(ADMIN_ID, `🔔 **إشعار الإدارة الفوري:**\nتم توليد صفحة هبوط سيو جديدة ومزامنتها لايف!\n\n📝 العنوان: ${title}\n🔗 الرابط: ${BASE_SITE_URL}/${slug}.html`, { parse_mode: 'Markdown' }).catch(()=>{});
                         }
-
                     } else {
                         await bot.telegram.editMessageText(ctx.chat.id, progressMessage.message_id, null, `⏳ جاري إنهاء بناء السيرفر السحابي (Deployment) على Vercel... يتبقى المزامنة النهائية خلال ${timeLeft} ثانية للاستقرار الفوري.`).catch(() => {});
                     }
                 }, 5000);
-
             } else {
-                ctx.reply(`⚠️ تم حفظ الملف محلياً ولكن هناك ضغط على مستودع Git، سيعمل الرابط تلقائياً خلال دقائق هنا:\n${BASE_SITE_URL}/${slug}.html`, getMainKeyboard(userId));
+                ctx.reply(`⚠️ تم الحفظ محلياً ولكن مستودع Git مشغول، سيعمل الرابط تلقائياً هنا:\n${BASE_SITE_URL}/${slug}.html`, getMainKeyboard(userId));
             }
             userSessions[userId] = null;
         });
     } catch (error) {
-        ctx.reply('❌ حدث خطأ داخلي أثناء توليد الملفات.');
+        ctx.reply('❌ حدث خطأ داخلي أثناء معالجة وحفظ البيانات.');
     }
-});
+}
 
 bot.on('text', async (ctx) => {
     const userId = ctx.from.id;
@@ -366,19 +430,13 @@ bot.on('text', async (ctx) => {
         const target_url = lines[0].trim();
         const title = lines.length >= 2 ? lines[1].trim() : "";
 
-        if (!target_url.startsWith('http://') && !target_url.startsWith('https://')) {
-            return ctx.reply('❌ خطأ: الرابط غير صالح! تأكد من أنه يبدأ بـ http:// أو https://');
-        }
-
-        // 🔍 1️⃣ ميزة فحص الروابط تلقائياً والأمان وحماية قوة السيو (URL Validator)
-        const checkingMsg = await ctx.reply('🔍 جاري فحص الرابط المرفق برمجياً للتأكد من سلامته واستقراره قبل توليد السيو...');
-        const isValid = await validateUrl(target_url);
+        const checkingMsg = await ctx.reply('🔍 جاري فحص استقرار وجودة الروابط المرفقة لـ A/B Testing...');
+        const isValid = await validateUrls(target_url);
         
-        // مسح رسالة الفحص ليكون المظهر جميلاً ونظيفاً
         await bot.telegram.deleteMessage(ctx.chat.id, checkingMsg.message_id).catch(() => {});
 
         if (!isValid) {
-            return ctx.reply('❌ خطأ: الرابط الذي أرسلته غير صالح، أو معطل، أو يرفض اتصالات السيرفر الخارجية. يرجى التأكد من الرابط وإعادة المحاولة حمايةً لقوة سيو موقعك.');
+            return ctx.reply('❌ خطأ: أحد الروابط المرفقة غير صالح أو معطل. يرجى التأكد وإعادة المحاولة لحماية قوة سيو موقعك.');
         }
 
         const metadata = generateSmartMetadata(title, target_url);
@@ -388,13 +446,22 @@ bot.on('text', async (ctx) => {
             data: { target_url, title: metadata.title, keywords: metadata.keywords, desc: metadata.desc }
         };
 
-        ctx.reply(`🎯 الرابط سليم ومثالي! تم توليد الكلمات المفتاحية والأوصاف الذكية المتوافقة مع سيو بنجاح!\n\n📝 العنوان المعتمد: ${metadata.title}\n\n🎨 الآن اختر القالب البصري والتنسيق المناسب لهذه الصفحة قبل النشر:`, 
+        ctx.reply(`🎯 الروابط سليمة وممتازة! تم توليد الأوصاف والكلمات الدلالية تلقائياً.\n\n📝 العنوان المعتمد: ${metadata.title}\n\n🎨 الآن اختر القالب البصري المناسب لصفحتك:`, 
             Markup.inlineKeyboard([
                 [Markup.button.callback('🌌 مظهر مظلم احترافي', 'dark'), Markup.button.callback('☀️ مظهر مضيء كلاسيكي', 'light')],
                 [Markup.button.callback('🔵 ثيم تليجرام الأزرق', 'telegram'), Markup.button.callback('🟢 ثيم واتساب الأخضر', 'whatsapp')]
             ])
         );
     } 
+    
+    else if (session && session.step === 'awaiting_custom_slug_text') {
+        // تنظيف الـ Slug المدخل ليكون متوافقاً مع الروابط (بدون مسافات أو رموز غريبة)
+        const cleanSlug = text.toLowerCase().replace(/[^a-z0-9-_]/g, '-').replace(/-+/g, '-');
+        if (!cleanSlug) return ctx.reply('⚠️ الرمز غير صالح، أرسل رمزاً يحتوي على أحرف وأرقام إنجليزية فقط.');
+        
+        session.step = null; 
+        return finalizePageCreation(ctx, userId, cleanSlug);
+    }
     
     else if (session && session.step === 'awaiting_delete_slug' && userId === ADMIN_ID) {
         try {
@@ -421,7 +488,7 @@ bot.on('text', async (ctx) => {
     }
 });
 
-// تشغيل البوت
+// إطلاق البوت
 bot.launch().then(() => {
-    console.log('🚀 البوت يعمل الآن بكفاءة وبأعلى المميزات الحصرية المدمجة وسهلة الاستخدام...');
+    console.log('🚀 تم تشغيل النظام المطور بأعلى الميزات الخارقة بنجاح...');
 });
